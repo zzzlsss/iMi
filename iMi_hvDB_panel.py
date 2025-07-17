@@ -263,7 +263,7 @@ if __name__ == "__main__":
             layout,
             pn.Column(
                 spectrum_map,
-                # od_spectrum_map,
+                od_spectrum_map,
                 # sel_map,
             ),
         ),
