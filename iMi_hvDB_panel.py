@@ -191,40 +191,86 @@ def plot_od_spectrum(index):
                 width=400, height=300, xlim=(2.4, 5.1), ylim=(-0.2, 5), 
             )
 
-scatter_H2O = hv.Scatter(
-    cat,
-    # (cat['H2_N'], cat['H2O_N'], cat['ID'], cat['H2_N_sci'], cat['H2O_N_sci']),
-    kdims=['H2_N', 'H2O_N'], vdims=['ID','H2_N_sci', 'H2O_N_sci']
-    ).opts(
-    color='blue', size=6, marker='circle', alpha=0.4,
-    tools=['hover'],
-    xlabel='H2_N', ylabel='H2O_N', title='H2_N vs H2O_N (All Sources)',
-    hover_tooltips=[('ID', '@ID'), ('H2_N', '@H2_N_sci'), ('H2O_N', '@H2O_N_sci')],
-    )
+def plot_h2_vs_h2o(index):
+    if index and len(index) > 0:
+        selected = cat.iloc[index]
+        scatter = hv.Points(
+            selected,
+            kdims=['H2_N', 'H2O_N'], vdims=['ID', 'H2_N_sci', 'H2O_N_sci']
+        ).opts(
+            color='blue', size=6, marker='circle', alpha=0.7,
+            tools=['hover'],
+            xlabel='H2_N', ylabel='H2O_N', title='H2_N vs H2O_N (Selected Sources)',
+            hover_tooltips=[
+            ('ID', '@ID'),
+            ('H2_N', '@H2_N_sci'),
+            ('H2O_N', '@H2O_N_sci')
+            ],
+        )
+    else:
+        scatter = hv.Points(
+            cat,
+            kdims=['H2_N', 'H2O_N'], vdims=['ID','H2_N_sci', 'H2O_N_sci']
+        ).opts(
+            color='blue', size=6, marker='circle', alpha=0.7,
+            tools=['hover'],
+            xlabel='H2_N', ylabel='H2O_N', title='H2_N vs H2O_N (All Sources)',
+            hover_tooltips=[('ID', '@ID'), ('H2_N', '@H2_N_sci'), ('H2O_N', '@H2O_N_sci')],
+        )
+    return scatter
 
-scatter_CO2 = hv.Scatter(
-    cat,
-    # (cat['CO2_N'], cat['H2O_N'], cat['ID'], cat['CO2_N_sci'], cat['H2O_N_sci']),
-    kdims=['H2_N', 'CO2_N'], vdims=['ID','H2_N_sci', 'CO2_N_sci']
-    ).opts(
-    color='purple', size=6, marker='circle', alpha=0.4,
-    tools=['hover'],
-    xlabel='CO2_N', ylabel='H2O_N', title='H2_N vs CO2_N (All Sources)',
-    hover_tooltips=[('ID', '@ID'), ('H2_N', '@H2_N_sci'),('CO2_N', '@CO2_N_sci'),],
-    )
+def plot_h2_vs_co2(index):
+    if index and len(index) > 0:
+        selected = cat.iloc[index]
+        scatter = hv.Scatter(
+            selected,
+            kdims=['H2_N', 'CO2_N'], vdims=['ID','H2_N_sci', 'CO2_N_sci']
+        ).opts(
+            color='green', size=6, marker='circle', alpha=0.7,
+            tools=['hover'],
+            xlabel='H2_N', ylabel='CO2_N', title='H2_N vs CO2_N (Selected Sources)',
+            hover_tooltips=[('ID', '@ID'), ('H2_N', '@H2_N_sci'), ('CO2_N', '@CO2_N_sci')],
+        )
+    else:
+        scatter = hv.Scatter(
+            cat,
+            kdims=['H2_N', 'CO2_N'], vdims=['ID','H2_N_sci', 'CO2_N_sci']
+        ).opts(
+            color='green', size=6, marker='circle', alpha=0.4,
+            tools=['hover'],
+            xlabel='H2_N', ylabel='CO2_N', title='H2_N vs CO2_N (All Sources)',
+            hover_tooltips=[('ID', '@ID'), ('H2_N', '@H2_N_sci'), ('CO2_N', '@CO2_N_sci')],
+        )
+    return scatter
 
-scatter_CO = hv.Scatter(
-    cat,
-    # (cat['CO_N'], cat['H2O_N'], cat['ID'], cat['CO_N_sci'], cat['H2O_N_sci']),
-    kdims=['H2_N', 'CO_N'], vdims=['ID','H2_N_sci', 'CO_N_sci']
-    ).opts(
-    color='red', size=6, marker='circle', alpha=0.4,
-    tools=['hover'],
-    xlabel='CO_N', ylabel='H2O_N', title='H2_N vs CO_N (All Sources)',
-    hover_tooltips=[('ID', '@ID'), ('H2_N', '@H2_N_sci'), ('CO_N', '@CO_N_sci')],
-    )
+def plot_h2_vs_co(index):
+    if index and len(index) > 0:
+        selected = cat.iloc[index]
+        scatter = hv.Scatter(
+            selected,
+            kdims=['H2_N', 'CO_N'], vdims=['ID','H2_N_sci', 'CO_N_sci']
+        ).opts(
+            color='red', size=6, marker='circle', alpha=0.7,
+            tools=['hover'],
+            xlabel='H2_N', ylabel='CO_N', title='H2_N vs CO_N (Selected Sources)',
+            hover_tooltips=[('ID', '@ID'), ('H2_N', '@H2_N_sci'), ('CO_N', '@CO_N_sci')],
+        )
+    else:
+        scatter = hv.Scatter(
+            cat,
+            kdims=['H2_N', 'CO_N'], vdims=['ID','H2_N_sci', 'CO_N_sci']
+        ).opts(
+            color='red', size=6, marker='circle', alpha=0.4,
+            tools=['hover'],
+            xlabel='H2_N', ylabel='CO_N', title='H2_N vs CO_N (All Sources)',
+            hover_tooltips=[('ID', '@ID'), ('H2_N', '@H2_N_sci'), ('CO_N', '@CO_N_sci')],
+        )
+    return scatter
 
-# h2_vs_h2o_map = hv.DynamicMap(plot_h2_vs_h2o, streams=[points_stream])
+scatter_H2O = hv.DynamicMap(plot_h2_vs_h2o, streams=[points_stream])
+scatter_CO2 = hv.DynamicMap(plot_h2_vs_co2, streams=[points_stream])
+scatter_CO = hv.DynamicMap(plot_h2_vs_co, streams=[points_stream])
+
 
 # Write function that uses the selection indices to slice points and compute stats
 def selected_info(index):
