@@ -12,6 +12,7 @@ from holoviews.operation.datashader import rasterize
 from holoviews import opts
 from holoviews.streams import Selection1D
 from bokeh.models import HoverTool, NumeralTickFormatter
+from holoviews.selection import link_selections
 # import bokeh.models.FuncTickFormatter
 
 # from scipy.interpolate import griddata
@@ -37,7 +38,7 @@ img_data = np.flipud(data[1].data)
 norm = apvis.ImageNormalize(img_data, stretch=apvis.HistEqStretch(img_data), clip=True)
 
 img = rasterize(
-    hv.Image(img_data.astype(np.float32),bounds=(0, 0, data[1].header['NAXIS1'], data[1].header['NAXIS2'])).opts(cnorm='eq_hist',clim=(norm.vmin, norm.vmax)),
+    hv.Image(img_data.astype(np.float32),bounds=(0, 0, data[1].header['NAXIS1'], data[1].header['NAXIS2'])).opts(cnorm='eq_hist',),#clim=(norm.vmin, norm.vmax)),
     precompute=True,
 ).opts(colorbar=True, cmap='gist_heat', width=800, height=800)
 
@@ -69,6 +70,8 @@ points = hv.Points(cat, kdims=['x_pix', 'y_pix'],vdims=['ID','H2O_RA','H2O_Dec',
 ## Create a stream to capture selections from the points plot
 # This will allow us to update the spectrum plot based on selected points
 points_stream = hv.streams.Selection1D(source=points)
+
+
 
 labels = hv.Labels(cat, kdims=['x_pix', 'y_pix'],vdims=['ID']).opts(text_color='blue', text_font_size='11pt', yoffset=15,)
 
@@ -200,7 +203,7 @@ def plot_h2_vs_h2o(index):
         ).opts(
             color='blue', size=6, marker='circle', alpha=0.7,
             tools=['hover'],
-            xlabel='H2_N', ylabel='H2O_N', title='H2_N vs H2O_N (Selected Sources)',
+            xlabel='H2_N', ylabel='H2O_N', title='N H2 vs. N H2O',
             hover_tooltips=[
             ('ID', '@ID'),
             ('H2_N', '@H2_N_sci'),
@@ -214,7 +217,7 @@ def plot_h2_vs_h2o(index):
         ).opts(
             color='blue', size=6, marker='circle', alpha=0.7,
             tools=['hover'],
-            xlabel='H2_N', ylabel='H2O_N', title='H2_N vs H2O_N (All Sources)',
+            xlabel='H2_N', ylabel='H2O_N', title='N H2 vs. N H2O',
             hover_tooltips=[('ID', '@ID'), ('H2_N', '@H2_N_sci'), ('H2O_N', '@H2O_N_sci')],
         )
     return scatter
@@ -228,7 +231,7 @@ def plot_h2_vs_co2(index):
         ).opts(
             color='green', size=6, marker='circle', alpha=0.7,
             tools=['hover'],
-            xlabel='H2_N', ylabel='CO2_N', title='H2_N vs CO2_N (Selected Sources)',
+            xlabel='H2_N', ylabel='CO2_N', title='N H2 vs. N CO2',
             hover_tooltips=[('ID', '@ID'), ('H2_N', '@H2_N_sci'), ('CO2_N', '@CO2_N_sci')],
         )
     else:
@@ -238,7 +241,7 @@ def plot_h2_vs_co2(index):
         ).opts(
             color='green', size=6, marker='circle', alpha=0.4,
             tools=['hover'],
-            xlabel='H2_N', ylabel='CO2_N', title='H2_N vs CO2_N (All Sources)',
+            xlabel='H2_N', ylabel='CO2_N', title='N H2 vs. N CO2',
             hover_tooltips=[('ID', '@ID'), ('H2_N', '@H2_N_sci'), ('CO2_N', '@CO2_N_sci')],
         )
     return scatter
@@ -252,7 +255,7 @@ def plot_h2_vs_co(index):
         ).opts(
             color='red', size=6, marker='circle', alpha=0.7,
             tools=['hover'],
-            xlabel='H2_N', ylabel='CO_N', title='H2_N vs CO_N (Selected Sources)',
+            xlabel='H2_N', ylabel='CO_N', title='N H2 vs. N CO',
             hover_tooltips=[('ID', '@ID'), ('H2_N', '@H2_N_sci'), ('CO_N', '@CO_N_sci')],
         )
     else:
@@ -262,7 +265,7 @@ def plot_h2_vs_co(index):
         ).opts(
             color='red', size=6, marker='circle', alpha=0.4,
             tools=['hover'],
-            xlabel='H2_N', ylabel='CO_N', title='H2_N vs CO_N (All Sources)',
+            xlabel='H2_N', ylabel='CO_N', title='N H2 vs. N CO',
             hover_tooltips=[('ID', '@ID'), ('H2_N', '@H2_N_sci'), ('CO_N', '@CO_N_sci')],
         )
     return scatter
@@ -270,6 +273,7 @@ def plot_h2_vs_co(index):
 scatter_H2O = hv.DynamicMap(plot_h2_vs_h2o, streams=[points_stream])
 scatter_CO2 = hv.DynamicMap(plot_h2_vs_co2, streams=[points_stream])
 scatter_CO = hv.DynamicMap(plot_h2_vs_co, streams=[points_stream])
+# link_selections(points + scatter_H2O + scatter_CO2 + scatter_CO)
 
 
 # Write function that uses the selection indices to slice points and compute stats
