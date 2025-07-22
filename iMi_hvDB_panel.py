@@ -12,7 +12,6 @@ from holoviews.operation.datashader import rasterize
 from holoviews import opts
 from holoviews.streams import Selection1D
 from bokeh.models import HoverTool, NumeralTickFormatter
-from holoviews.selection import link_selections
 # import bokeh.models.FuncTickFormatter
 
 # from scipy.interpolate import griddata
@@ -34,6 +33,13 @@ cat['CO2_N_sci'] = cat['CO2_N'].apply(lambda x: f"{x:.3e}")
 cat['CO_N_sci'] = cat['CO_N'].apply(lambda x: f"{x:.3e}")
 cat['H2_N_sci'] = cat['H2_N'].apply(lambda x: f"{x:.3e}")
 
+
+""" 
+Non-linked materials
+- Rasterised FITS Image
+- Overlaid catalog labels 
+"""
+
 img_data = np.flipud(data[1].data)
 norm = apvis.ImageNormalize(img_data, stretch=apvis.HistEqStretch(img_data), clip=True)
 
@@ -41,6 +47,23 @@ img = rasterize(
     hv.Image(img_data.astype(np.float32),bounds=(0, 0, data[1].header['NAXIS1'], data[1].header['NAXIS2'])).opts(cnorm='eq_hist',),#clim=(norm.vmin, norm.vmax)),
     precompute=True,
 ).opts(colorbar=True, cmap='gist_heat', width=800, height=800)
+
+labels = hv.Labels(cat, kdims=['x_pix', 'y_pix'],vdims=['ID']).opts(text_color='blue', text_font_size='11pt', yoffset=15,)
+
+""" 
+Linked materials
+- Catalog points overlayed on the image - index_map
+- H2 vs Ice CDs (H2O, CO2, CO) scatter plots - index_H2O, index_CO2, index_CO
+- Ternary plot (future work) - index_ternary
+- Flux and OD Spectrum plots - points linked to plot these spectra 
+
+A selection1D stream for each plot is created to capture selections from the points plot.
+Ensure tap and lasso_select tools are enabled in the points plot.
+
+This will allow us to select points and update the spectrum plot dynamically
+"""
+
+## TURN THIS INTO A FUNCTION TO MAKE DYNAMIC MAKE WITH STREAMS OF H2O CO2 AND CO PLOTS!!!!
 
 points = hv.Points(cat, kdims=['x_pix', 'y_pix'],vdims=['ID','H2O_RA','H2O_Dec',
                                                         'H2O_N_sci','H2O_N_err_lower','H2O_N_err_upper',
@@ -67,136 +90,15 @@ points = hv.Points(cat, kdims=['x_pix', 'y_pix'],vdims=['ID','H2O_RA','H2O_Dec',
                     ],
 )
 
+
+
 ## Create a stream to capture selections from the points plot
 # This will allow us to update the spectrum plot based on selected points
-points_stream = hv.streams.Selection1D(source=points)
+points_stream = hv.streams.Selection1D(source=points).rename(index='index_map')
 
-
-
-labels = hv.Labels(cat, kdims=['x_pix', 'y_pix'],vdims=['ID']).opts(text_color='blue', text_font_size='11pt', yoffset=15,)
-
-def plot_spectrum(index):
-    if index and len(index) > 0:
-        overlays = []
-        color_cycle = ['black','red', 'green', 'orange', 'purple', 'brown', 'magenta', 'cyan']
-
-        for num, i in enumerate(index):
-            row = cat.iloc[i]
-            wls = np.array(row['H2O_WLs'])
-            fluxes = np.array(row['H2O_Fluxes'])
-            errs = np.array(row['H2O_FluxErrs'])
-            baseline = np.array(row['H2O_Baseline'])
-
-            if len(index) == 1:
-                title = f"Spectrum ID: {row['ID']}"
-                color = 'black'
-            else:
-                # If multiple selected, show all IDs in the title
-                title = f"Spectrum IDs {', '.join(str(cat.iloc[j]['ID']) for j in index)}"
-
-                # Use a color cycle for multiple spectra
-                # This will cycle through the colors for each selected spectrum
-                # and matches OD spectra
-                color = color_cycle[num % len(color_cycle)]
-
-                # Ensures original black spectra stays black
-                if num == 0:
-                    color = 'black'
-
-            
-
-            # Create a curve for the spectrum
-            # This will plot the fluxes against the wavelengths
-            # If multiple spectra are selected, each will be plotted in a different color
-            # If only one spectrum is selected, it will be black
-            curve = hv.Curve((wls, fluxes), 'Wavelength (μm)', 'Flux (mJy)',label=f"{row['ID']}").opts(
-                xlim=(2.4, 5.1), ylim=(1e-3, 0.7), logy=True,
-                line_width=0.75, color=color, title=title,
-            )
-
-            ## Error bars as a spread
-            errorbars = hv.Spread((wls, fluxes, errs)).opts(
-                color='blue', alpha=0.4, logy=True,
-                # show_legend=True, legend_label=f"ID: {row['ID']}"
-            )
-
-            # # Plot the continuum (baseline) as a dashed line
-            baseline_curve = hv.Curve((wls, baseline)).opts(
-                color='red', line_dash='dashed', alpha=0.7,
-            )
-
-            overlays.append(curve * errorbars * baseline_curve)
-    else:
-        # If no spectra are selected, an empty curve will be returned
-        # This will ensure the plot is still displayed even when no points are selected
-        # and avoids errors in the plot rendering
-        curve = hv.Curve([], 'Wavelength (μm)', 'Flux').opts(title="No selection",)
-
-        # Empty error bars
-        errorbars = hv.Spread([], 'Wavelength (μm)', 'Flux')
-
-        # An empty baseline curve
-        baseline_curve = hv.Curve([], 'Wavelength (μm)', 'Flux (mJy)')
-        overlays = [curve * baseline_curve]
-
-    
-    return hv.Overlay(overlays).opts(
-                width=400, height=300, xlim=(2.4, 5.1), ylim=(1e-3, 0.7), logy=True,
-            )
-
-def plot_od_spectrum(index):
-    if index and len(index) > 0:
-        overlays = []
-        color_cycle = ['black','red', 'green', 'orange', 'purple', 'brown', 'magenta', 'cyan']
-
-        for num,i in enumerate(index):
-            row = cat.iloc[i]
-            wls = np.array(row['H2O_WLs'])
-            od = np.array(row['H2O_OD_spec'])
-            # od_err = np.array(row['H2O_OD_spec_err'])
-            # label = row['ID']
-            if len(index) > 1:
-                title = f"OD Spectrum IDs {', '.join(str(cat.iloc[j]['ID']) for j in index)}"
-                color = color_cycle[num % len(color_cycle)]
-                if num == 0:
-                    color='black'
-            else:
-                title = f"OD Spectrum ID {row['ID']}"
-                color = 'black'
-
-            curve = hv.Curve((wls, od), 'Wavelength (μm)', 'Optical Depth').opts(color=color,title=title, alpha=0.75, line_width=0.75)
-            overlays.append(curve)
-
-            # Shows the zero continuum line
-            # Plotted only for first source as if done within loop, 
-            # the od spectra are not plotted after 2 sources... 
-            # Seemingly cannot plot every continuum line for each source in flux
-            # if num == 0:
-            #     baseline_curve = hv.Curve((wls, np.zeros_like(wls)), 'Wavelength (μm)', 'Optical Depth').opts(
-            #         color='red', line_dash='dashed', alpha=0.7,
-            #     )
-                
-            #     overlays.append(baseline_curve)
-    
-    else:
-        curve = hv.Curve([], 'Wavelength (μm)', 'Optical Depth').opts(
-            title="No selection",
-        )
-        overlays = [curve]
-        # Add flat dashed red line at od=0 for empty view
-        # overlays.append(
-        #     hv.Curve((np.linspace(2.4, 5.1, 10), np.zeros(10)), 'Wavelength (μm)', 'Optical Depth').opts(
-        #         color='red', line_dash='dashed', alpha=0.7,
-        #     )
-        # )
-
-    return hv.Overlay(overlays).opts(
-                width=400, height=300, xlim=(2.4, 5.1), ylim=(-0.2, 5), 
-            )
-
-def plot_h2_vs_h2o(index):
-    if index and len(index) > 0:
-        selected = cat.iloc[index]
+def plot_h2_vs_h2o(index_map):
+    if index_map and len(index_map) > 0:
+        selected = cat.iloc[index_map]
         scatter = hv.Points(
             selected,
             kdims=['H2_N', 'H2O_N'], vdims=['ID', 'H2_N_sci', 'H2O_N_sci']
@@ -222,9 +124,12 @@ def plot_h2_vs_h2o(index):
         )
     return scatter
 
-def plot_h2_vs_co2(index):
-    if index and len(index) > 0:
-        selected = cat.iloc[index]
+scatter_H2O = hv.DynamicMap(plot_h2_vs_h2o, streams=[points_stream]).opts(tools=['hover', 'tap', 'lasso_select'])
+scatter_H2O_stream = hv.streams.Selection1D(source=scatter_H2O).rename(index='index_H2O')
+
+def plot_h2_vs_co2(index_map):
+    if index_map and len(index_map) > 0:
+        selected = cat.iloc[index_map]
         scatter = hv.Scatter(
             selected,
             kdims=['H2_N', 'CO2_N'], vdims=['ID','H2_N_sci', 'CO2_N_sci']
@@ -246,9 +151,12 @@ def plot_h2_vs_co2(index):
         )
     return scatter
 
-def plot_h2_vs_co(index):
-    if index and len(index) > 0:
-        selected = cat.iloc[index]
+scatter_CO2 = hv.DynamicMap(plot_h2_vs_co2, streams=[points_stream]).opts(tools=['hover', 'tap', 'lasso_select'])
+scatter_CO2_stream = hv.streams.Selection1D(source=scatter_CO2).rename(index='index_CO2')
+
+def plot_h2_vs_co(index_map):
+    if index_map and len(index_map) > 0:
+        selected = cat.iloc[index_map]
         scatter = hv.Scatter(
             selected,
             kdims=['H2_N', 'CO_N'], vdims=['ID','H2_N_sci', 'CO_N_sci']
@@ -270,22 +178,86 @@ def plot_h2_vs_co(index):
         )
     return scatter
 
-scatter_H2O = hv.DynamicMap(plot_h2_vs_h2o, streams=[points_stream])
-scatter_CO2 = hv.DynamicMap(plot_h2_vs_co2, streams=[points_stream])
-scatter_CO = hv.DynamicMap(plot_h2_vs_co, streams=[points_stream])
-# link_selections(points + scatter_H2O + scatter_CO2 + scatter_CO)
+scatter_CO = hv.DynamicMap(plot_h2_vs_co, streams=[points_stream]).opts(tools=['hover', 'tap', 'lasso_select'])
+scatter_CO_stream = hv.streams.Selection1D(source=scatter_CO).rename(index='index_CO')
 
+""" Spectrum Plots """
 
-# Write function that uses the selection indices to slice points and compute stats
-def selected_info(index):
-    if index:
-        selected = cat.iloc[index]
-        return hv.Points(selected, kdims=['x_pix', 'y_pix']).opts(
-            marker='square', size=6, color='green', alpha=0.7, fill_color=None
-        ).relabel('Selected Points')
+def plot_spectrum(index_map, index_H2O, index_CO2, index_CO):
+    indices = (
+        index_map if index_map and len(index_map) > 0 else
+        index_H2O if index_H2O and len(index_H2O) > 0 else
+        index_CO2 if index_CO2 and len(index_CO2) > 0 else
+        index_CO if index_CO and len(index_CO) > 0 else []
+    )
+
+    if indices:
+        overlays = []
+        color_cycle = ['black', 'red', 'green', 'orange', 'purple', 'brown', 'magenta', 'cyan']
+        for num, i in enumerate(indices):
+            row = cat.iloc[i]
+            wls = np.array(row['H2O_WLs'])
+            fluxes = np.array(row['H2O_Fluxes'])
+            errs = np.array(row['H2O_FluxErrs'])
+            baseline = np.array(row['H2O_Baseline'])
+            color = 'black' if num == 0 else color_cycle[num % len(color_cycle)]
+            title = f"Spectrum ID: {row['ID']}" if len(indices) == 1 else f"Spectrum IDs {', '.join(str(cat.iloc[j]['ID']) for j in indices)}"
+            curve = hv.Curve((wls, fluxes), 'Wavelength (μm)', 'Flux (mJy)').opts(
+                xlim=(2.4, 5.1), ylim=(1e-3, 0.7), logy=True, line_width=0.75, color=color, title=title
+            )
+            errorbars = hv.Spread((wls, fluxes, errs)).opts(color='blue', alpha=0.4, logy=True)
+            baseline_curve = hv.Curve((wls, baseline)).opts(color='red', line_dash='dashed', alpha=0.7)
+            overlays.append(curve * errorbars * baseline_curve)
     else:
-        return hv.Points([], kdims=['x_pix', 'y_pix']).relabel('No selection')
+        overlays = [hv.Curve([], 'Wavelength (μm)', 'Flux').opts(title="No selection") * hv.Curve([], 'Wavelength (μm)', 'Flux (mJy)')]
 
+    return hv.Overlay(overlays).opts(width=400, height=300, xlim=(2.4, 5.1), ylim=(1e-3, 0.7), logy=True)
+
+def plot_od_spectrum(index_map, index_H2O, index_CO2, index_CO):
+    overlays = []
+    color_cycle = ['black', 'red', 'green', 'orange', 'purple', 'brown', 'magenta', 'cyan']
+
+    indices = index_map if index_map and len(index_map) > 0 else index_H2O if index_H2O and len(index_H2O) > 0 else \
+     index_CO2 if index_CO2 and len(index_CO2) > 0 else index_CO if index_CO and len(index_CO) > 0 else []
+    
+    if indices:
+        for num, i in enumerate(indices):
+            row = cat.iloc[i]
+            wls = np.array(row['H2O_WLs'])
+            od = np.array(row['H2O_OD_spec'])
+            color = color_cycle[num % len(color_cycle)] if len(indices) > 1 else 'black'
+            if num == 0:
+                color = 'black'
+            title = f"OD Spectrum ID {row['ID']}" if len(indices) == 1 else f"OD Spectrum IDs {', '.join(str(cat.iloc[j]['ID']) for j in indices)}"
+            overlays.append(hv.Curve((wls, od), 'Wavelength (μm)', 'Optical Depth').opts(color=color, title=title, alpha=0.75, line_width=0.75))
+    else:
+        overlays = [hv.Curve([], 'Wavelength (μm)', 'Optical Depth').opts(title="No selection")]
+
+    return hv.Overlay(overlays).opts(
+            width=400, height=300, xlim=(2.4, 5.1), ylim=(-0.2, 5), 
+        )
+    
+# Shows the zero continuum line
+# Plotted only for first source as if done within loop, 
+# the od spectra are not plotted after 2 sources... 
+# Seemingly cannot plot every continuum line for each source in flux
+# if num == 0:
+#     baseline_curve = hv.Curve((wls, np.zeros_like(wls)), 'Wavelength (μm)', 'Optical Depth').opts(
+#         color='red', line_dash='dashed', alpha=0.7,
+#     )
+    
+#     overlays.append(baseline_curve)
+    
+
+
+
+
+""" All plots for app layout here """
+# Pair the plots so that selections in one update the other and axes stay synced
+layout = (img * points * labels)
+
+spectrum_map = hv.DynamicMap(plot_spectrum, streams=[points_stream, scatter_H2O_stream, scatter_CO2_stream, scatter_CO_stream])
+od_spectrum_map = hv.DynamicMap(plot_od_spectrum, streams=[points_stream, scatter_H2O_stream, scatter_CO2_stream, scatter_CO_stream])
 
 app_bar = pn.Row(
     pn.pane.Markdown('## <span style="color:white">ice Mapping interface (iMi)</span>', width=500, sizing_mode="fixed", margin=(10,5,10,15)), 
@@ -294,17 +266,8 @@ app_bar = pn.Row(
     pn.pane.PNG("https://panel.holoviz.org/_static/logo_horizontal.png", height=50, sizing_mode="fixed", align="center"),
     styles={'background': 'black'},
 )
-app_bar
+# app_bar
 
-
-# Pair the plots so that selections in one update the other and axes stay synced
-layout = (img * points * labels)
-
-spectrum_map = hv.DynamicMap(plot_spectrum, streams=[points_stream])
-od_spectrum_map = hv.DynamicMap(plot_od_spectrum, streams=[points_stream])
-
-## Not using currently
-sel_map = hv.DynamicMap(selected_info, streams=[points_stream])
 if __name__ == "__main__":
     app = pn.Column(
         app_bar,
