@@ -73,7 +73,7 @@ points = hv.Points(cat, kdims=['x_pix', 'y_pix'],vdims=['ID','H2O_RA','H2O_Dec',
     marker='square', size=6, color='blue', fill_color=None,
     tools=['tap','lasso_select', 'hover'],
     selection_color='green', selection_alpha=1,
-    nonselection_alpha=0.7,
+    nonselection_alpha=0.8,
     hover_tooltips=[('ID', '@ID'),
                     ('RA', '@H2O_RA'), 
                     ('Dec', '@H2O_Dec'), 
@@ -94,24 +94,27 @@ points = hv.Points(cat, kdims=['x_pix', 'y_pix'],vdims=['ID','H2O_RA','H2O_Dec',
 
 ## Create a stream to capture selections from the points plot
 # This will allow us to update the spectrum plot based on selected points
-points_stream = hv.streams.Selection1D(source=points).rename(index='index_map')
+points_stream = hv.streams.Selection1D(source=points) #.rename(index='index_map')
 
-def plot_h2_vs_h2o(index_map):
-    if index_map and len(index_map) > 0:
-        selected = cat.iloc[index_map]
+def plot_h2_vs_h2o(index):
+    indices = index if index and len(index) > 0 else []
+
+    if indices:
+        selected = cat.iloc[indices]
         scatter = hv.Points(
             selected,
             kdims=['H2_N', 'H2O_N'], vdims=['ID', 'H2_N_sci', 'H2O_N_sci']
         ).opts(
             color='blue', size=6, marker='circle', alpha=0.7,
-            tools=['hover'],
-            xlabel='H2_N', ylabel='H2O_N', title='N H2 vs. N H2O',
-            hover_tooltips=[
-            ('ID', '@ID'),
-            ('H2_N', '@H2_N_sci'),
-            ('H2O_N', '@H2O_N_sci')
-            ],
-        )
+                tools=['hover'],
+                xlabel='H2_N', ylabel='H2O_N', title='N H2 vs. N H2O',
+                hover_tooltips=[
+                ('ID', '@ID'),
+                ('H2_N', '@H2_N_sci'),
+                ('H2O_N', '@H2O_N_sci')
+                ],
+            )
+     
     else:
         scatter = hv.Points(
             cat,
@@ -127,10 +130,11 @@ def plot_h2_vs_h2o(index_map):
 scatter_H2O = hv.DynamicMap(plot_h2_vs_h2o, streams=[points_stream]).opts(tools=['hover', 'tap', 'lasso_select'])
 scatter_H2O_stream = hv.streams.Selection1D(source=scatter_H2O).rename(index='index_H2O')
 
-def plot_h2_vs_co2(index_map):
-    if index_map and len(index_map) > 0:
-        selected = cat.iloc[index_map]
-        scatter = hv.Scatter(
+def plot_h2_vs_co2(index):
+    indices = index if index and len(index) > 0 else []
+    if indices:
+        selected = cat.iloc[indices]
+        scatter = hv.Points(
             selected,
             kdims=['H2_N', 'CO2_N'], vdims=['ID','H2_N_sci', 'CO2_N_sci']
         ).opts(
@@ -140,7 +144,7 @@ def plot_h2_vs_co2(index_map):
             hover_tooltips=[('ID', '@ID'), ('H2_N', '@H2_N_sci'), ('CO2_N', '@CO2_N_sci')],
         )
     else:
-        scatter = hv.Scatter(
+        scatter = hv.Points(
             cat,
             kdims=['H2_N', 'CO2_N'], vdims=['ID','H2_N_sci', 'CO2_N_sci']
         ).opts(
@@ -154,10 +158,11 @@ def plot_h2_vs_co2(index_map):
 scatter_CO2 = hv.DynamicMap(plot_h2_vs_co2, streams=[points_stream]).opts(tools=['hover', 'tap', 'lasso_select'])
 scatter_CO2_stream = hv.streams.Selection1D(source=scatter_CO2).rename(index='index_CO2')
 
-def plot_h2_vs_co(index_map):
-    if index_map and len(index_map) > 0:
-        selected = cat.iloc[index_map]
-        scatter = hv.Scatter(
+def plot_h2_vs_co(index):
+    indices = index if index and len(index) > 0 else []
+    if indices:
+        selected = cat.iloc[indices]
+        scatter = hv.Points(
             selected,
             kdims=['H2_N', 'CO_N'], vdims=['ID','H2_N_sci', 'CO_N_sci']
         ).opts(
@@ -167,7 +172,7 @@ def plot_h2_vs_co(index_map):
             hover_tooltips=[('ID', '@ID'), ('H2_N', '@H2_N_sci'), ('CO_N', '@CO_N_sci')],
         )
     else:
-        scatter = hv.Scatter(
+        scatter = hv.Points(
             cat,
             kdims=['H2_N', 'CO_N'], vdims=['ID','H2_N_sci', 'CO_N_sci']
         ).opts(
@@ -183,9 +188,9 @@ scatter_CO_stream = hv.streams.Selection1D(source=scatter_CO).rename(index='inde
 
 """ Spectrum Plots """
 
-def plot_spectrum(index_map, index_H2O, index_CO2, index_CO):
+def plot_spectrum(index, index_H2O, index_CO2, index_CO):
     indices = (
-        index_map if index_map and len(index_map) > 0 else
+        index if index and len(index) > 0 else
         index_H2O if index_H2O and len(index_H2O) > 0 else
         index_CO2 if index_CO2 and len(index_CO2) > 0 else
         index_CO if index_CO and len(index_CO) > 0 else []
@@ -213,12 +218,16 @@ def plot_spectrum(index_map, index_H2O, index_CO2, index_CO):
 
     return hv.Overlay(overlays).opts(width=400, height=300, xlim=(2.4, 5.1), ylim=(1e-3, 0.7), logy=True)
 
-def plot_od_spectrum(index_map, index_H2O, index_CO2, index_CO):
+def plot_od_spectrum(index, index_H2O, index_CO2, index_CO):
     overlays = []
     color_cycle = ['black', 'red', 'green', 'orange', 'purple', 'brown', 'magenta', 'cyan']
 
-    indices = index_map if index_map and len(index_map) > 0 else index_H2O if index_H2O and len(index_H2O) > 0 else \
-     index_CO2 if index_CO2 and len(index_CO2) > 0 else index_CO if index_CO and len(index_CO) > 0 else []
+    indices = (
+        index if index and len(index) > 0 else
+        index_H2O if index_H2O and len(index_H2O) > 0 else
+        index_CO2 if index_CO2 and len(index_CO2) > 0 else
+        index_CO if index_CO and len(index_CO) > 0 else []
+    )
     
     if indices:
         for num, i in enumerate(indices):
@@ -277,7 +286,6 @@ if __name__ == "__main__":
             pn.Column(
                 spectrum_map,
                 od_spectrum_map,
-                # sel_map,
             ),
         ),
         pn.Row(
