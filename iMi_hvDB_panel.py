@@ -81,7 +81,7 @@ def plot_source_locations(selected_indices):
         marker='square', size=6, color='blue', fill_color=None,
         tools=['tap','lasso_select', 'hover'],
         selection_color='green', selection_alpha=1,
-        nonselection_alpha=0.8,
+        nonselection_alpha=0.4,
         hover_tooltips=[('ID', '@ID'),
                         ('RA', '@H2O_RA'), 
                         ('Dec', '@H2O_Dec'), 
@@ -132,7 +132,7 @@ def plot_h2_vs_h2o(selected_indices):
                 ('H2_N', '@H2_N_sci'),
                 ('H2O_N', '@H2O_N_sci')
                 ], selected=indices,
-                nonselection_alpha=0.3,
+                nonselection_alpha=0.1,
             )
      
     else:
@@ -165,7 +165,7 @@ def plot_h2_vs_co2(selected_indices):
             xlabel='H2_N', ylabel='CO2_N', title='N H2 vs. N CO2',
             hover_tooltips=[('ID', '@ID'), ('H2_N', '@H2_N_sci'), ('CO2_N', '@CO2_N_sci')],
             selected=indices,
-            nonselection_alpha=0.3,
+            nonselection_alpha=0.1,
         )
     else:
         scatter = hv.Points(
@@ -199,7 +199,7 @@ def plot_h2_vs_co(selected_indices):
             xlabel='H2_N', ylabel='CO_N', title='N H2 vs. N CO',
             hover_tooltips=[('ID', '@ID'), ('H2_N', '@H2_N_sci'), ('CO_N', '@CO_N_sci')],
             selected=indices,
-            nonselection_alpha=0.3,
+            nonselection_alpha=0.1,
         )
     else:
         scatter = hv.Points(
