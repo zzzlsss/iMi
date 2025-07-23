@@ -46,9 +46,7 @@ norm = apvis.ImageNormalize(img_data, stretch=apvis.HistEqStretch(img_data), cli
 img = rasterize(
     hv.Image(img_data.astype(np.float32),bounds=(0, 0, data[1].header['NAXIS1'], data[1].header['NAXIS2'])).opts(cnorm='eq_hist',),#clim=(norm.vmin, norm.vmax)),
     precompute=True,
-).opts(colorbar=True, cmap='gist_heat', width=800, height=800)
-
-labels = hv.Labels(cat, kdims=['x_pix', 'y_pix'],vdims=['ID']).opts(text_color='blue', text_font_size='11pt', yoffset=15,)
+).opts(colorbar=True, cmap='gist_heat', width=600, height=600)
 
 """ 
 Linked materials
@@ -65,46 +63,67 @@ This will allow us to select points and update the spectrum plot dynamically
 
 ## TURN THIS INTO A FUNCTION TO MAKE DYNAMIC MAKE WITH STREAMS OF H2O CO2 AND CO PLOTS!!!!
 
-points = hv.Points(cat, kdims=['x_pix', 'y_pix'],vdims=['ID','H2O_RA','H2O_Dec',
-                                                        'H2O_N_sci','H2O_N_err_lower','H2O_N_err_upper',
-                                                        'CO2_N_sci','CO2_N_err_lower','CO2_N_err_upper',
-                                                        'CO_N_sci','CO_N_err_lower','CO_N_err_upper',
-                                                        'H2_N_sci']).opts(
-    marker='square', size=6, color='blue', fill_color=None,
-    tools=['tap','lasso_select', 'hover'],
-    selection_color='green', selection_alpha=1,
-    nonselection_alpha=0.8,
-    hover_tooltips=[('ID', '@ID'),
-                    ('RA', '@H2O_RA'), 
-                    ('Dec', '@H2O_Dec'), 
-                    ('N H2O', '@H2O_N_sci'),  # scientific notation
-                    # ('H2O_N_err_lower', '@H2O_N_err_lower'), 
-                    # ('H2O_N_err_upper', '@H2O_N_err_upper'), 
-                    ('N CO2', '@CO2_N_sci'), 
-                    # ('CO2_N_err_lower', '@CO2_N_err_lower'), 
-                    # ('CO2_N_err_upper', '@CO2_N_err_upper')
-                    ('N CO', '@CO_N_sci'), 
-                    # ('CO_N_err_lower', '@CO_N_err_lower'), 
-                    # ('CO_N_err_upper', '@CO_N_err_upper')
-                    ('N H2', '@H2_N_sci'),
-                    ],
-)
+class SelectedIndices(hv.streams.Stream):
+    selected_indices = hv.param.List(default=[], doc="Selected object indices")
+
+selected_indices = SelectedIndices(selected_indices = [], transient=True)#list(range(cat.shape[0])))
+
+def update_selected_indices(index=[], index_CO2=[], index_CO = [], index_H2O=[]):
+    combined_indices = list(set(index + index_CO2 + index_CO + index_H2O))
+    selected_indices.event(selected_indices=combined_indices)
+
+def plot_source_locations(selected_indices):
+    points = hv.Points(cat, kdims=['x_pix', 'y_pix'],vdims=['ID','H2O_RA','H2O_Dec',
+                                                            'H2O_N_sci','H2O_N_err_lower','H2O_N_err_upper',
+                                                            'CO2_N_sci','CO2_N_err_lower','CO2_N_err_upper',
+                                                            'CO_N_sci','CO_N_err_lower','CO_N_err_upper',
+                                                            'H2_N_sci']).opts(
+        marker='square', size=6, color='blue', fill_color=None,
+        tools=['tap','lasso_select', 'hover'],
+        selection_color='green', selection_alpha=1,
+        nonselection_alpha=0.8,
+        hover_tooltips=[('ID', '@ID'),
+                        ('RA', '@H2O_RA'), 
+                        ('Dec', '@H2O_Dec'), 
+                        ('N H2O', '@H2O_N_sci'),  # scientific notation
+                        # ('H2O_N_err_lower', '@H2O_N_err_lower'), 
+                        # ('H2O_N_err_upper', '@H2O_N_err_upper'), 
+                        ('N CO2', '@CO2_N_sci'), 
+                        # ('CO2_N_err_lower', '@CO2_N_err_lower'), 
+                        # ('CO2_N_err_upper', '@CO2_N_err_upper')
+                        ('N CO', '@CO_N_sci'), 
+                        # ('CO_N_err_lower', '@CO_N_err_lower'), 
+                        # ('CO_N_err_upper', '@CO_N_err_upper')
+                        ('N H2', '@H2_N_sci'),
+                        ], selected=selected_indices
+    )
 
 
+    return points
+
+points = hv.DynamicMap(plot_source_locations, streams=[selected_indices])
+
+def plot_source_labels(selected_indices = []):
+    labels = hv.Labels(cat.iloc[selected_indices], kdims=['x_pix', 'y_pix'],vdims=['ID']).opts(text_color='blue', text_font_size='11pt', yoffset=15,)
+    return labels
+
+labels = hv.DynamicMap(plot_source_labels, streams=[selected_indices])
 
 ## Create a stream to capture selections from the points plot
 # This will allow us to update the spectrum plot based on selected points
 points_stream = hv.streams.Selection1D(source=points) #.rename(index='index_map')
 
-def plot_h2_vs_h2o(index):
-    indices = index if index and len(index) > 0 else []
+points_stream.add_subscriber(update_selected_indices)
+
+def plot_h2_vs_h2o(selected_indices):
+    indices = selected_indices if selected_indices and len(selected_indices) > 0 else []
 
     if indices:
-        selected = cat.iloc[indices]
+        selected = cat#.iloc[indices]
         scatter = hv.Points(
             selected,
             kdims=['H2_N', 'H2O_N'], vdims=['ID', 'H2_N_sci', 'H2O_N_sci']
-        ).opts(
+        ).opts(width=400, height=400,
             color='blue', size=6, marker='circle', alpha=0.7,
                 tools=['hover'],
                 xlabel='H2_N', ylabel='H2O_N', title='N H2 vs. N H2O',
@@ -112,14 +131,15 @@ def plot_h2_vs_h2o(index):
                 ('ID', '@ID'),
                 ('H2_N', '@H2_N_sci'),
                 ('H2O_N', '@H2O_N_sci')
-                ],
+                ], selected=indices,
+                nonselection_alpha=0.3,
             )
      
     else:
         scatter = hv.Points(
             cat,
             kdims=['H2_N', 'H2O_N'], vdims=['ID','H2_N_sci', 'H2O_N_sci']
-        ).opts(
+        ).opts(width=400, height=400,
             color='blue', size=6, marker='circle', alpha=0.7,
             tools=['hover'],
             xlabel='H2_N', ylabel='H2O_N', title='N H2 vs. N H2O',
@@ -127,27 +147,31 @@ def plot_h2_vs_h2o(index):
         )
     return scatter
 
-scatter_H2O = hv.DynamicMap(plot_h2_vs_h2o, streams=[points_stream]).opts(tools=['hover', 'tap', 'lasso_select'])
+scatter_H2O = hv.DynamicMap(plot_h2_vs_h2o, streams=[selected_indices]).opts(tools=['hover', 'tap', 'lasso_select'])
 scatter_H2O_stream = hv.streams.Selection1D(source=scatter_H2O).rename(index='index_H2O')
 
-def plot_h2_vs_co2(index):
-    indices = index if index and len(index) > 0 else []
+scatter_H2O_stream.add_subscriber(update_selected_indices)
+
+def plot_h2_vs_co2(selected_indices):
+    indices = selected_indices if selected_indices and len(selected_indices) > 0 else []
     if indices:
-        selected = cat.iloc[indices]
+        selected = cat#.iloc[indices]
         scatter = hv.Points(
             selected,
             kdims=['H2_N', 'CO2_N'], vdims=['ID','H2_N_sci', 'CO2_N_sci']
-        ).opts(
+        ).opts(width=400, height=400,
             color='green', size=6, marker='circle', alpha=0.7,
             tools=['hover'],
             xlabel='H2_N', ylabel='CO2_N', title='N H2 vs. N CO2',
             hover_tooltips=[('ID', '@ID'), ('H2_N', '@H2_N_sci'), ('CO2_N', '@CO2_N_sci')],
+            selected=indices,
+            nonselection_alpha=0.3,
         )
     else:
         scatter = hv.Points(
             cat,
             kdims=['H2_N', 'CO2_N'], vdims=['ID','H2_N_sci', 'CO2_N_sci']
-        ).opts(
+        ).opts(width=400, height=400,
             color='green', size=6, marker='circle', alpha=0.4,
             tools=['hover'],
             xlabel='H2_N', ylabel='CO2_N', title='N H2 vs. N CO2',
@@ -155,27 +179,34 @@ def plot_h2_vs_co2(index):
         )
     return scatter
 
-scatter_CO2 = hv.DynamicMap(plot_h2_vs_co2, streams=[points_stream]).opts(tools=['hover', 'tap', 'lasso_select'])
+scatter_CO2 = hv.DynamicMap(plot_h2_vs_co2, streams=[selected_indices]).opts(tools=['hover', 'tap', 'lasso_select'])
 scatter_CO2_stream = hv.streams.Selection1D(source=scatter_CO2).rename(index='index_CO2')
 
-def plot_h2_vs_co(index):
-    indices = index if index and len(index) > 0 else []
+scatter_CO2_stream.add_subscriber(update_selected_indices)
+
+
+def plot_h2_vs_co(selected_indices):
+    indices = selected_indices if selected_indices and len(selected_indices) > 0 else []
     if indices:
-        selected = cat.iloc[indices]
+        selected = cat#.iloc[indices]
         scatter = hv.Points(
             selected,
             kdims=['H2_N', 'CO_N'], vdims=['ID','H2_N_sci', 'CO_N_sci']
         ).opts(
+            width=400, height=400,
             color='red', size=6, marker='circle', alpha=0.7,
             tools=['hover'],
             xlabel='H2_N', ylabel='CO_N', title='N H2 vs. N CO',
             hover_tooltips=[('ID', '@ID'), ('H2_N', '@H2_N_sci'), ('CO_N', '@CO_N_sci')],
+            selected=indices,
+            nonselection_alpha=0.3,
         )
     else:
         scatter = hv.Points(
             cat,
             kdims=['H2_N', 'CO_N'], vdims=['ID','H2_N_sci', 'CO_N_sci']
         ).opts(
+            width=400, height=400,
             color='red', size=6, marker='circle', alpha=0.4,
             tools=['hover'],
             xlabel='H2_N', ylabel='CO_N', title='N H2 vs. N CO',
@@ -183,18 +214,16 @@ def plot_h2_vs_co(index):
         )
     return scatter
 
-scatter_CO = hv.DynamicMap(plot_h2_vs_co, streams=[points_stream]).opts(tools=['hover', 'tap', 'lasso_select'])
+scatter_CO = hv.DynamicMap(plot_h2_vs_co, streams=[selected_indices]).opts(tools=['hover', 'tap', 'lasso_select'])
 scatter_CO_stream = hv.streams.Selection1D(source=scatter_CO).rename(index='index_CO')
+
+scatter_CO_stream.add_subscriber(update_selected_indices)
 
 """ Spectrum Plots """
 
-def plot_spectrum(index, index_H2O, index_CO2, index_CO):
-    indices = (
-        index if index and len(index) > 0 else
-        index_H2O if index_H2O and len(index_H2O) > 0 else
-        index_CO2 if index_CO2 and len(index_CO2) > 0 else
-        index_CO if index_CO and len(index_CO) > 0 else []
-    )
+# def plot_spectrum(index, index_H2O, index_CO2, index_CO):
+def plot_spectrum(selected_indices):
+    indices = (selected_indices if selected_indices and len(selected_indices) > 0 else [])
 
     if indices:
         overlays = []
@@ -216,18 +245,21 @@ def plot_spectrum(index, index_H2O, index_CO2, index_CO):
     else:
         overlays = [hv.Curve([], 'Wavelength (μm)', 'Flux').opts(title="No selection") * hv.Curve([], 'Wavelength (μm)', 'Flux (mJy)')]
 
-    return hv.Overlay(overlays).opts(width=400, height=300, xlim=(2.4, 5.1), ylim=(1e-3, 0.7), logy=True)
+    return hv.Overlay(overlays).opts(width=600, height=300, xlim=(2.4, 5.1), ylim=(1e-3, 0.7), logy=True)
 
-def plot_od_spectrum(index, index_H2O, index_CO2, index_CO):
+# def plot_od_spectrum(index, index_H2O, index_CO2, index_CO):
+def plot_od_spectrum(selected_indices):
+    indices = (selected_indices if selected_indices and len(selected_indices) > 0 else [])
+
+    # indices = (
+    #     index if index and len(index) > 0 else
+    #     index_H2O if index_H2O and len(index_H2O) > 0 else
+    #     index_CO2 if index_CO2 and len(index_CO2) > 0 else
+    #     index_CO if index_CO and len(index_CO) > 0 else []
+    # )
+
     overlays = []
     color_cycle = ['black', 'red', 'green', 'orange', 'purple', 'brown', 'magenta', 'cyan']
-
-    indices = (
-        index if index and len(index) > 0 else
-        index_H2O if index_H2O and len(index_H2O) > 0 else
-        index_CO2 if index_CO2 and len(index_CO2) > 0 else
-        index_CO if index_CO and len(index_CO) > 0 else []
-    )
     
     if indices:
         for num, i in enumerate(indices):
@@ -243,7 +275,7 @@ def plot_od_spectrum(index, index_H2O, index_CO2, index_CO):
         overlays = [hv.Curve([], 'Wavelength (μm)', 'Optical Depth').opts(title="No selection")]
 
     return hv.Overlay(overlays).opts(
-            width=400, height=300, xlim=(2.4, 5.1), ylim=(-0.2, 5), 
+            width=600, height=300, xlim=(2.4, 5.1), ylim=(-0.2, 5), 
         )
     
 # Shows the zero continuum line
@@ -259,17 +291,15 @@ def plot_od_spectrum(index, index_H2O, index_CO2, index_CO):
     
 
 
-
-
 """ All plots for app layout here """
 # Pair the plots so that selections in one update the other and axes stay synced
 layout = (img * points * labels)
 
-spectrum_map = hv.DynamicMap(plot_spectrum, streams=[points_stream, scatter_H2O_stream, scatter_CO2_stream, scatter_CO_stream])
-od_spectrum_map = hv.DynamicMap(plot_od_spectrum, streams=[points_stream, scatter_H2O_stream, scatter_CO2_stream, scatter_CO_stream])
+spectrum_map = hv.DynamicMap(plot_spectrum,streams=[selected_indices]) # streams=[points_stream, scatter_H2O_stream, scatter_CO2_stream, scatter_CO_stream])
+od_spectrum_map = hv.DynamicMap(plot_od_spectrum,streams=[selected_indices]) # streams=[points_stream, scatter_H2O_stream, scatter_CO2_stream, scatter_CO_stream])
 
 app_bar = pn.Row(
-    pn.pane.Markdown('## <span style="color:white">ice Mapping interface (iMi)</span>', width=500, sizing_mode="fixed", margin=(10,5,10,15)), 
+    pn.pane.Markdown('## <span style="color:white">ice Mapping interface (iMi)</span>', width=1200, sizing_mode="fixed", margin=(10,5,10,15)), 
     pn.Spacer(),
     pn.pane.PNG("http://holoviews.org/_static/logo.png", height=50, sizing_mode="fixed", align="center"),
     pn.pane.PNG("https://panel.holoviz.org/_static/logo_horizontal.png", height=50, sizing_mode="fixed", align="center"),
