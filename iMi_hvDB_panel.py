@@ -61,8 +61,6 @@ Ensure tap and lasso_select tools are enabled in the points plot.
 This will allow us to select points and update the spectrum plot dynamically
 """
 
-## TURN THIS INTO A FUNCTION TO MAKE DYNAMIC MAKE WITH STREAMS OF H2O CO2 AND CO PLOTS!!!!
-
 class SelectedIndices(hv.streams.Stream):
     selected_indices = hv.param.List(default=[], doc="Selected object indices")
 
