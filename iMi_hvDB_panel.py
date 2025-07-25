@@ -64,7 +64,7 @@ This will allow us to select points and update the spectrum plot dynamically
 class SelectedIndices(hv.streams.Stream):
     selected_indices = hv.param.List(default=[], doc="Selected object indices")
 
-selected_indices = SelectedIndices(selected_indices = [], transient=True)#list(range(cat.shape[0])))
+selected_indices = SelectedIndices(selected_indices = [], transient=True)
 
 def update_selected_indices(index=[], index_CO2=[], index_CO = [], index_H2O=[]):
     combined_indices = list(set(index + index_CO2 + index_CO + index_H2O))
