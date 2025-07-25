@@ -80,8 +80,6 @@ def plot_source_locations(selected_indices):
                                                             'H2_N_sci']).opts(
         marker='square', size=6, color='blue', fill_color=None,
         tools=['tap','lasso_select', 'hover'],
-        selection_color='green', selection_alpha=1,
-        nonselection_alpha=0.4,
         hover_tooltips=[('ID', '@ID'),
                         ('RA', '@H2O_RA'), 
                         ('Dec', '@H2O_Dec'), 
@@ -95,7 +93,13 @@ def plot_source_locations(selected_indices):
                         # ('CO_N_err_lower', '@CO_N_err_lower'), 
                         # ('CO_N_err_upper', '@CO_N_err_upper')
                         ('N H2', '@H2_N_sci'),
-                        ], selected=selected_indices
+                        ], 
+        selected=selected_indices,
+        selection_color='green', 
+        selection_alpha=1,
+        nonselection_alpha=0.4,
+        
+        
     )
 
 
@@ -103,11 +107,48 @@ def plot_source_locations(selected_indices):
 
 points = hv.DynamicMap(plot_source_locations, streams=[selected_indices])
 
-def plot_source_labels(selected_indices = []):
-    labels = hv.Labels(cat.iloc[selected_indices], kdims=['x_pix', 'y_pix'],vdims=['ID']).opts(text_color='blue', text_font_size='11pt', yoffset=15,)
+# Panel toggle button to show/hide labels
+label_toggle = pn.widgets.Toggle(name='Show/Hide ID Labels', value=True, button_type='primary')
+
+def plot_labels(selected_indices=[], show_labels=True):
+    """
+    Plot labels for selected points in the catalog.
+    """
+    if selected_indices:
+        # If there are selected indices, plot labels for those points
+        labels = hv.Labels(cat.iloc[selected_indices], kdims=['x_pix', 'y_pix'], vdims=['ID']).opts(
+            text_color='blue', text_font_size='11pt', yoffset=15,
+        )
+    else:
+        if show_labels:
+            # If no points are selected but labels should be shown, plot all labels
+            labels = hv.Labels(cat, kdims=['x_pix', 'y_pix'], vdims=['ID']).opts(
+                text_color='blue', text_font_size='11pt', yoffset=15,
+            )
+        else:
+            # If no points are selected and labels should not be shown, return an empty Labels object
+            labels = hv.Labels([], kdims=['x_pix', 'y_pix'], vdims=['ID']).opts(
+                text_color='blue', text_font_size='11pt', yoffset=15,
+            )
     return labels
 
-labels = hv.DynamicMap(plot_source_labels, streams=[selected_indices])
+# Use a Param stream to link the toggle button to the DynamicMap
+class ShowLabelsStream(hv.streams.Stream):
+    show_labels = hv.param.Boolean(default=True)
+
+show_labels_stream = ShowLabelsStream(show_labels=label_toggle.value)
+
+def update_show_labels(event):
+    show_labels_stream.event(show_labels=event.new)
+
+label_toggle.param.watch(update_show_labels, 'value')
+
+# DynamicMap for labels, using the toggle button value
+labels = hv.DynamicMap(
+    lambda selected_indices, show_labels: plot_labels(selected_indices, show_labels),
+    streams=[selected_indices, show_labels_stream]
+)
+
 
 ## Create a stream to capture selections from the points plot
 # This will allow us to update the spectrum plot based on selected points
@@ -293,7 +334,7 @@ def plot_od_spectrum(selected_indices):
 
 """ All plots for app layout here """
 # Pair the plots so that selections in one update the other and axes stay synced
-layout = (img * points * labels)
+layout = (img * points * labels) # * labels_but)
 
 spectrum_map = hv.DynamicMap(plot_spectrum,streams=[selected_indices]) # streams=[points_stream, scatter_H2O_stream, scatter_CO2_stream, scatter_CO_stream])
 od_spectrum_map = hv.DynamicMap(plot_od_spectrum,streams=[selected_indices]) # streams=[points_stream, scatter_H2O_stream, scatter_CO2_stream, scatter_CO_stream])
@@ -312,7 +353,7 @@ if __name__ == "__main__":
         app_bar,
         pn.Spacer(height=10),
         pn.Row(
-            layout,
+            layout, label_toggle,
             pn.Column(
                 spectrum_map,
                 od_spectrum_map,
