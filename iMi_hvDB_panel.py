@@ -105,9 +105,6 @@ def plot_source_locations(selected_indices):
 
 points = hv.DynamicMap(plot_source_locations, streams=[selected_indices])
 
-# Panel toggle button to show/hide labels
-label_toggle = pn.widgets.Toggle(name='Show/Hide ID Labels', value=True, button_type='primary')
-
 def plot_labels(selected_indices=[], show_labels=True):
     """
     Plot labels for selected points in the catalog.
@@ -129,6 +126,9 @@ def plot_labels(selected_indices=[], show_labels=True):
                 text_color='blue', text_font_size='11pt', yoffset=15,
             )
     return labels
+
+# Panel toggle button to show/hide labels
+label_toggle = pn.widgets.Toggle(name='Show/Hide ID Labels', value=True, button_type='primary')
 
 # Use a Param stream to link the toggle button to the DynamicMap
 class ShowLabelsStream(hv.streams.Stream):
