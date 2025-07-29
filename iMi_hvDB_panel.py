@@ -567,7 +567,7 @@ def source_info_table(selected_indices):
         })
     return hv.Table(df)
 
-table = hv.DynamicMap(source_info_table, streams=[selected_indices]).opts(width=1000, height=100)
+table = hv.DynamicMap(source_info_table, streams=[selected_indices]).opts(width=1200, height=100)
 
 
 # Add a DataFrame widget that updates when points are selected
