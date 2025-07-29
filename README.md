@@ -9,7 +9,7 @@ Here at iMi inc. we are driven to provide first class wide-scale cloud ice map d
 
 Please ensure you are...
 1. Using image data as a __FITS__ file (**Decision required:** or 2D array .npy with a WCS information pickle file)
-2. The analysis information is stored as a  {pandas DataFrame} with these columns (specifically formatted like so - case-sensitive names but not column-order-sensitive):
+2. The analysis information is stored as a  ```pandas DataFrame``` with these columns (specifically formatted like so - case-sensitive names but not column-order-sensitive):
 - ID
 - RA
 - Dec
