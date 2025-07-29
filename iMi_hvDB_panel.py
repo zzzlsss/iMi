@@ -35,9 +35,10 @@ cat = pd.read_pickle(PICKLE_FILE_PATH)
 
 wcs = WCS(data[1].header)
 pixels = wcs.world_to_pixel_values(cat['H2O_RA'].values, cat['H2O_Dec'].values)
-cat['x_pix'], cat['y_pix'] = pixels[0], pixels[1]
+cat['x_pix'], cat['y_pix'] = pixels[0], pixels[1]   
 cat['ID'] = cat.index
 
+## ENSURES THAT SEARCH BY ID WORKS AND NEEDED AS SELECETED OPTION IN POINTS IS DONE BY ILOC!!!
 cat.reset_index(drop=True, inplace=True)
 
 # cat = cat[['ID', 'x_pix', 'y_pix', 'H2O_RA', 'H2O_Dec', 'H2O_N', 'H2O_N_err_lower', 'H2O_N_err_upper', 'H2O_WLs',]]# 'H2O_Fluxes', 'H2O_FluxErrs','H2O_Baseline', 'H2O_Baseline_err', 'H2O_OD_spec', 'H2O_OD_spec_err']]
