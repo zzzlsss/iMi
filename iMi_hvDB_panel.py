@@ -153,7 +153,6 @@ labels = hv.DynamicMap(
 ## Create a stream to capture selections from the points plot
 # This will allow us to update the spectrum plot based on selected points
 points_stream = hv.streams.Selection1D(source=points) #.rename(index='index_map')
-
 points_stream.add_subscriber(update_selected_indices)
 
 def plot_h2_vs_h2o(selected_indices):
@@ -192,7 +191,6 @@ def plot_h2_vs_h2o(selected_indices):
 
 scatter_H2O = hv.DynamicMap(plot_h2_vs_h2o, streams=[selected_indices])
 scatter_H2O_stream = hv.streams.Selection1D(source=scatter_H2O).rename(index='index_H2O')
-
 scatter_H2O_stream.add_subscriber(update_selected_indices)
 
 def plot_h2_vs_co2(selected_indices):
@@ -227,7 +225,6 @@ def plot_h2_vs_co2(selected_indices):
 
 scatter_CO2 = hv.DynamicMap(plot_h2_vs_co2, streams=[selected_indices])
 scatter_CO2_stream = hv.streams.Selection1D(source=scatter_CO2).rename(index='index_CO2')
-
 scatter_CO2_stream.add_subscriber(update_selected_indices)
 
 
@@ -345,17 +342,17 @@ scatter_H2O_CO = hv.DynamicMap(plot_h2o_vs_co, streams=[selected_indices])
 scatter_H2O_CO_stream = hv.streams.Selection1D(source=scatter_H2O_CO).rename(index='index_H2O_CO')
 scatter_H2O_CO_stream.add_subscriber(update_selected_indices)
 
-def plot_co2_vs_co(selected_indices):
+def plot_co_vs_co2(selected_indices):
     indices = selected_indices if selected_indices and len(selected_indices) > 0 else []
     if indices:
         scatter = hv.Points(
             cat,
-            kdims=['CO2_N', 'CO_N'], vdims=['ID', 'sci_CO2_N', 'sci_CO_N']
+            kdims=['CO_N', 'CO2_N'], vdims=['ID', 'sci_CO_N', 'sci_CO2_N']
         ).opts(
             width=400, height=400,
             color='k', size=6, marker='circle', alpha=0.7,
             tools=['hover', 'tap', 'lasso_select'],
-            xlabel='N CO$_2$', ylabel='N CO', title='N CO$_2$ vs. N CO',
+            xlabel='N CO', ylabel='N CO$_2$', title='N CO vs. N CO$_2$',
             hover_tooltips=[
                 ('ID', '@ID'),
                 ('N CO$_2$', '@sci_CO2_N'),
@@ -367,12 +364,12 @@ def plot_co2_vs_co(selected_indices):
     else:
         scatter = hv.Points(
             cat,
-            kdims=['CO2_N', 'CO_N'], vdims=['ID', 'sci_CO2_N', 'sci_CO_N']
+            kdims=['CO_N', 'CO2_N'], vdims=['ID', 'sci_CO_N', 'sci_CO2_N']
         ).opts(
             width=400, height=400,
             color='k', size=6, marker='circle', alpha=0.4,
             tools=['hover', 'tap', 'lasso_select'],
-            xlabel='N CO$_2$', ylabel='N CO', title='N CO$_2$ vs. N CO',
+            xlabel='N CO', ylabel='N CO$_2$', title='N CO vs. N CO$_2$',
             hover_tooltips=[
                 ('ID', '@ID'),
                 ('N CO$_2$', '@sci_CO2_N'),
@@ -381,7 +378,7 @@ def plot_co2_vs_co(selected_indices):
         )
     return scatter 
 
-scatter_CO2_CO = hv.DynamicMap(plot_co2_vs_co, streams=[selected_indices])
+scatter_CO2_CO = hv.DynamicMap(plot_co_vs_co2, streams=[selected_indices])
 scatter_CO2_CO_stream = hv.streams.Selection1D(source=scatter_CO2_CO).rename(index='index_CO2_CO')
 scatter_CO2_CO_stream.add_subscriber(update_selected_indices)
 
@@ -569,15 +566,18 @@ if __name__ == "__main__":
                 table,
             ),
         ),
-        pn.Row(
-            scatter_H2O,
-            scatter_CO2,
-            scatter_CO,
-        ),
-        pn.Row(
-            scatter_H2O_CO2,
-            scatter_H2O_CO,
-            scatter_CO2_CO,
+        pn.Accordion(
+            ("H2 vs Ice Column Density Correlation Plots", pn.Row(
+                scatter_H2O,
+                scatter_CO2,
+                scatter_CO,
+            )),
+            ("Ice Column Density Ratio Plots", pn.Row(
+                scatter_H2O_CO2,
+                scatter_H2O_CO,
+                scatter_CO2_CO,
+            )),
+            sizing_mode='stretch_width',
         ),
         sizing_mode='stretch_both',
         margin=(10, 10, 10, 10),
