@@ -38,6 +38,8 @@ pixels = wcs.world_to_pixel_values(cat['H2O_RA'].values, cat['H2O_Dec'].values)
 cat['x_pix'], cat['y_pix'] = pixels[0], pixels[1]
 cat['ID'] = cat.index
 
+cat.reset_index(drop=True, inplace=True)
+
 # cat = cat[['ID', 'x_pix', 'y_pix', 'H2O_RA', 'H2O_Dec', 'H2O_N', 'H2O_N_err_lower', 'H2O_N_err_upper', 'H2O_WLs',]]# 'H2O_Fluxes', 'H2O_FluxErrs','H2O_Baseline', 'H2O_Baseline_err', 'H2O_OD_spec', 'H2O_OD_spec_err']]
 
 ## Cannot find way to label hover points with scientific notation therefore...
@@ -92,8 +94,8 @@ class SelectedIndices(hv.streams.Stream):
 
 selected_indices = SelectedIndices(selected_indices = [], transient=True)
 
-def update_selected_indices(index=[], index_CO2=[], index_CO = [], index_H2O=[], index_H2O_CO2=[], index_H2O_CO=[], index_CO2_CO=[]):
-    combined_indices = list(set(index + index_CO2 + index_CO + index_H2O + index_H2O_CO2 + index_H2O_CO + index_CO2_CO))
+def update_selected_indices(index=[], index_CO2=[], index_CO = [], index_H2O=[], index_H2O_CO2=[], index_H2O_CO=[], index_CO2_CO=[],index_table=[]):
+    combined_indices = list(set(index + index_CO2 + index_CO + index_H2O + index_H2O_CO2 + index_H2O_CO + index_CO2_CO + index_table))
     selected_indices.event(selected_indices=combined_indices)
 
 def plot_source_locations(selected_indices):
@@ -122,21 +124,23 @@ def plot_source_locations(selected_indices):
         selection_color='green', 
         selection_alpha=1,
         nonselection_alpha=0.4,
-        
-        
-    )
-
-
+        )
     return points
 
 points = hv.DynamicMap(plot_source_locations, streams=[selected_indices])
+## Create a stream to capture selections from the points plot
+# This will allow us to update the spectrum plot based on selected points
+points_stream = hv.streams.Selection1D(source=points) #.rename(index='index_map')
+points_stream.add_subscriber(update_selected_indices)
+
 
 def plot_labels(selected_indices=[], show_labels=True):
     """
     Plot labels for selected points in the catalog.
     """
+    # valid_indices = [i for i in selected_indices if 0 <= i < len(cat)]
     if selected_indices:
-        # If there are selected indices, plot labels for those points
+        # If there are valid selected indices, plot labels for those points
         labels = hv.Labels(cat.iloc[selected_indices], kdims=['x_pix', 'y_pix'], vdims=['ID']).opts(
             text_color='blue', text_font_size='11pt', yoffset=15,
         )
@@ -173,11 +177,6 @@ labels = hv.DynamicMap(
     streams=[selected_indices, show_labels_stream]
 )
 
-
-## Create a stream to capture selections from the points plot
-# This will allow us to update the spectrum plot based on selected points
-points_stream = hv.streams.Selection1D(source=points) #.rename(index='index_map')
-points_stream.add_subscriber(update_selected_indices)
 
 def plot_h2_vs_h2o(selected_indices):
     indices = selected_indices if selected_indices and len(selected_indices) > 0 else []
@@ -304,7 +303,7 @@ def plot_h2o_vs_co2(selected_indices):
             width=400, height=400,
             color='k', size=6, marker='circle', alpha=0.7,
             tools=['hover', 'tap', 'lasso_select'],
-            xlabel='N H$_2$O', ylabel='N CO$_2$', title='N H$_2$O vs. N CO$_2$',
+            xlabel=make_latex_label_string('N H$_2$O'), ylabel=make_latex_label_string('N CO$_2$'), title=make_latex_label_string('N H$_2$O vs. N CO$_2$'),
             hover_tooltips=[
                 ('ID', '@ID'),
                 ('N H$_2$O', '@sci_H2O_N'),
@@ -321,7 +320,7 @@ def plot_h2o_vs_co2(selected_indices):
             width=400, height=400,
             color='k', size=6, marker='circle', alpha=0.4,
             tools=['hover', 'tap', 'lasso_select'],
-            xlabel='N H$_2$O', ylabel='N CO$_2$', title='N H$_2$O vs. N CO$_2$',
+            xlabel=make_latex_label_string('N H$_2$O'), ylabel=make_latex_label_string('N CO$_2$'), title=make_latex_label_string('N H$_2$O vs. N CO$_2$'),
             hover_tooltips=[
                 ('ID', '@ID'),
                 ('N H$_2$O', '@sci_H2O_N'),
@@ -344,7 +343,7 @@ def plot_h2o_vs_co(selected_indices):
             width=400, height=400,
             color='k', size=6, marker='circle', alpha=0.7,
             tools=['hover', 'tap', 'lasso_select'],
-            xlabel='N H$_2$O', ylabel='N CO', title='N H$_2$O vs. N CO',
+            xlabel=make_latex_label_string('N H$_2$O'), ylabel=make_latex_label_string('N CO'), title=make_latex_label_string('N H$_2$O vs. N CO'),
             hover_tooltips=[
                 ('ID', '@ID'),
                 ('N H$_2$O', '@sci_H2O_N'),
@@ -361,7 +360,7 @@ def plot_h2o_vs_co(selected_indices):
             width=400, height=400,
             color='k', size=6, marker='circle', alpha=0.4,
             tools=['hover', 'tap', 'lasso_select'],
-            xlabel='N H$_2$O', ylabel='N CO', title='N H$_2$O vs. N CO',
+            xlabel=make_latex_label_string('N H$_2$O'), ylabel=make_latex_label_string('N CO'), title=make_latex_label_string('N H$_2$O vs. N CO'),
             hover_tooltips=[
                 ('ID', '@ID'),
                 ('N H$_2$O', '@sci_H2O_N'),
@@ -384,7 +383,7 @@ def plot_co_vs_co2(selected_indices):
             width=400, height=400,
             color='k', size=6, marker='circle', alpha=0.7,
             tools=['hover', 'tap', 'lasso_select'],
-            xlabel='N CO', ylabel='N CO$_2$', title='N CO vs. N CO$_2$',
+            xlabel=make_latex_label_string('N CO'), ylabel=make_latex_label_string('N CO$_2$'), title=make_latex_label_string('N CO vs. N CO$_2$'),
             hover_tooltips=[
                 ('ID', '@ID'),
                 ('N CO$_2$', '@sci_CO2_N'),
@@ -401,7 +400,7 @@ def plot_co_vs_co2(selected_indices):
             width=400, height=400,
             color='k', size=6, marker='circle', alpha=0.4,
             tools=['hover', 'tap', 'lasso_select'],
-            xlabel='N CO', ylabel='N CO$_2$', title='N CO vs. N CO$_2$',
+            xlabel=make_latex_label_string('N CO'), ylabel=make_latex_label_string('N CO$_2$'), title=make_latex_label_string('N CO vs. N CO$_2$'),
             hover_tooltips=[
                 ('ID', '@ID'),
                 ('N CO$_2$', '@sci_CO2_N'),
@@ -414,18 +413,51 @@ scatter_CO2_CO = hv.DynamicMap(plot_co_vs_co2, streams=[selected_indices])
 scatter_CO2_CO_stream = hv.streams.Selection1D(source=scatter_CO2_CO).rename(index='index_CO2_CO')
 scatter_CO2_CO_stream.add_subscriber(update_selected_indices)
 
+""" Search bar for ID search - updates selected_indices stream with the index of the searched ID"""
+search_bar = pn.widgets.TextInput(name='Search by ID', placeholder='Enter Spectrum ID / List of IDs (comma-separated)')
+
+def search_selected_indices(search_id):
+    if search_id:
+        try:
+            # Support comma-separated list of IDs
+            search_ids = [int(s.strip()) for s in search_id.split(',') if s.strip().isdigit()]
+            indices = cat[cat['ID'].isin(search_ids)].index.tolist()
+            # indices = cat[cat['ID'] == search_id_int].index.tolist()
+            selected_indices.event(selected_indices=indices)
+            # Update all scatter plot selection streams to reflect the search
+            points_stream.event(index=indices)
+            scatter_H2O_stream.event(index=indices)
+            scatter_CO2_stream.event(index=indices)
+            scatter_CO_stream.event(index=indices)
+            scatter_H2O_CO2_stream.event(index=indices)
+            scatter_H2O_CO_stream.event(index=indices)
+            scatter_CO2_CO_stream.event(index=indices)
+        except ValueError:
+            selected_indices.event(selected_indices=[])
+            points_stream.event(index=[])
+            scatter_H2O_stream.event(index=[])
+            scatter_CO2_stream.event(index=[])
+            scatter_CO_stream.event(index=[])
+            scatter_H2O_CO2_stream.event(index=[])
+            scatter_H2O_CO_stream.event(index=[])
+            scatter_CO2_CO_stream.event(index=[])
+
+search_bar.param.watch(lambda event: search_selected_indices(event.new.strip()) if event is not None and event.new is not None and event.new.strip() != "" else selected_indices.event(selected_indices=[]), 'value')
+
+
+
 """ Spectrum Plots """
 
-# def plot_spectrum(index, index_H2O, index_CO2, index_CO):
 def plot_spectrum(selected_indices):
+    # valid_indices = [i for i in selected_indices if 0 <= i < len(cat)]
+    # indices = valid_indices if valid_indices and len(valid_indices) > 0 else []
     indices = (selected_indices if selected_indices and len(selected_indices) > 0 else [])
-
     if indices:
         overlays = []
         color_cycle = ['black', 'red', 'green', 'orange', 'purple', 'brown', 'magenta', 'cyan']
         for num, i in enumerate(indices):
             row = cat.iloc[i]
-            
+
             title = f"Spectrum ID: {row['ID']}" if len(indices) == 1 else f"Spectrum IDs {', '.join(str(cat.iloc[j]['ID']) for j in indices)}"
             color = 'black' if num == 0 else color_cycle[num % len(color_cycle)]
 
@@ -467,16 +499,10 @@ def plot_spectrum(selected_indices):
 
     return hv.Overlay(overlays).opts(width=600, height=300, xlim=(2.4, 5.1), ylim=(1e-3, 0.7), logy=True)
 
-# def plot_od_spectrum(index, index_H2O, index_CO2, index_CO):
 def plot_od_spectrum(selected_indices):
+    # valid_indices = [i for i in selected_indices if 0 <= i < len(cat)]
+    # indices = valid_indices if valid_indices and len(valid_indices) > 0 else []
     indices = (selected_indices if selected_indices and len(selected_indices) > 0 else [])
-
-    # indices = (
-    #     index if index and len(index) > 0 else
-    #     index_H2O if index_H2O and len(index_H2O) > 0 else
-    #     index_CO2 if index_CO2 and len(index_CO2) > 0 else
-    #     index_CO if index_CO and len(index_CO) > 0 else []
-    # )
 
     overlays = []
     color_cycle = ['black', 'red', 'green', 'orange', 'purple', 'brown', 'magenta', 'cyan']
@@ -484,7 +510,7 @@ def plot_od_spectrum(selected_indices):
     if indices:
         for num, i in enumerate(indices):
             row = cat.iloc[i]
-            
+
             title = f"OD Spectrum ID {row['ID']}" if len(indices) == 1 else f"OD Spectrum IDs {', '.join(str(cat.iloc[j]['ID']) for j in indices)}"
             color = color_cycle[num % len(color_cycle)] if len(indices) > 1 else 'black'
             if num == 0:
@@ -508,7 +534,7 @@ def plot_od_spectrum(selected_indices):
 
             co2_od_curve = hv.Curve((co2_wls, co2_od), 'Wavelength (μm)', 'Optical Depth').opts(color=color, alpha=0.75, line_width=0.75)
 
-            # Add fill_between region for CO2 OD between 2.715 and 3.35 μm
+            # Add fill_between region for CO2 OD between 4.2 and 4.34 μm
             co2_mask = (co2_wls >= 4.2) & (co2_wls <= 4.34) & (co2_od > 0)
             if np.any(co2_mask):
                 fill_between = hv.Area((co2_wls[co2_mask], co2_od[co2_mask])).opts(
@@ -521,7 +547,7 @@ def plot_od_spectrum(selected_indices):
 
             co_od_curve = hv.Curve((co_wls, co_od), 'Wavelength (μm)', 'Optical Depth').opts(color=color, alpha=0.75, line_width=0.75)
 
-            # Add fill_between region for CO OD between 2.715 and 3.35 μm
+            # Add fill_between region for CO OD between 4.65 and 4.705 μm
             co_mask = (co_wls >= 4.65) & (co_wls <= 4.705) & (co_od > 0)
             if np.any(co_mask):
                 fill_between = hv.Area((co_wls[co_mask], co_od[co_mask])).opts(
@@ -549,62 +575,54 @@ def plot_od_spectrum(selected_indices):
 #     overlays.append(baseline_curve)
 
 def source_info_table(selected_indices):
-    if selected_indices is None or len(selected_indices) == 0:
-        df = cat.iloc[[]][['ID', 'H2O_RA', 'H2O_Dec', 
-                           'sci_H2O_N', 'sci_H2O_N_err_upper', 'sci_H2O_N_err_lower',
-                           'sci_CO2_N', 'sci_CO2_N_err_upper', 'sci_CO2_N_err_lower', 
-                           'sci_CO_N', 'sci_CO_N_err_upper', 'sci_CO_N_err_lower', 
-                           'sci_H2_N']].reset_index(drop=True)
-        df = df.rename(columns={
-            'H2O_RA': 'RA',
-            'H2O_Dec': 'Dec',
-            'sci_H2O_N': 'N H2O',
-            'sci_H2O_N_err_upper': 'N H2O err upp',
-            'sci_H2O_N_err_lower': 'N H2O err low',
-            'sci_CO2_N': 'N CO2',
-            'sci_CO2_N_err_upper': 'N CO2 err upp',
-            'sci_CO2_N_err_lower': 'N CO2 err low',
-            'sci_CO_N': 'N CO',
-            'sci_CO_N_err_upper': 'N CO err upp',
-            'sci_CO_N_err_lower': 'N CO err low',
-            'sci_H2_N': 'N H2'
-        })
+    valid_indices = [i for i in selected_indices if 0 <= i < len(cat)]
+    columns = ['ID', 'H2O_RA', 'H2O_Dec', 
+               'sci_H2O_N', 'sci_H2O_N_err_upper', 'sci_H2O_N_err_lower',
+               'sci_CO2_N', 'sci_CO2_N_err_upper', 'sci_CO2_N_err_lower', 
+               'sci_CO_N', 'sci_CO_N_err_upper', 'sci_CO_N_err_lower', 
+               'sci_H2_N']
+    rename_dict = {
+        'H2O_RA': 'RA',
+        'H2O_Dec': 'Dec',
+        'sci_H2O_N': 'N H2O',
+        'sci_H2O_N_err_upper': 'N H2O err upp',
+        'sci_H2O_N_err_lower': 'N H2O err low',
+        'sci_CO2_N': 'N CO2',
+        'sci_CO2_N_err_upper': 'N CO2 err upp',
+        'sci_CO2_N_err_lower': 'N CO2 err low',
+        'sci_CO_N': 'N CO',
+        'sci_CO_N_err_upper': 'N CO err upp',
+        'sci_CO_N_err_lower': 'N CO err low',
+        'sci_H2_N': 'N H2'
+    }
+    # If selection is from index_table, show full DataFrame
+    if selected_indices is not None and set(table_stream.index) == set(selected_indices):
+        df = cat[columns].reset_index(drop=True)
+        df = df.rename(columns=rename_dict)
+    elif valid_indices is None or len(valid_indices) == 0:
+        # Show full DataFrame if no selection
+        df = cat[columns].reset_index(drop=True)
+        df = df.rename(columns=rename_dict)
+
     else:
-        df = cat.iloc[selected_indices][['ID', 'H2O_RA', 'H2O_Dec', 
-                                         'sci_H2O_N', 'sci_H2O_N_err_upper', 'sci_H2O_N_err_lower', 
-                                         'sci_CO2_N', 'sci_CO2_N_err_upper', 'sci_CO2_N_err_lower', 
-                                         'sci_CO_N', 'sci_CO_N_err_upper', 'sci_CO_N_err_lower', 
-                                         'sci_H2_N']].reset_index(drop=True)
-        df = df.rename(columns={
-            'H2O_RA': 'RA',
-            'H2O_Dec': 'Dec',
-            'sci_H2O_N': 'N H2O',
-            'sci_H2O_N_err_upper': 'N H2O err upp',
-            'sci_H2O_N_err_lower': 'N H2O err low',
-            'sci_CO2_N': 'N CO2',
-            'sci_CO2_N_err_upper': 'N CO2 err upp',
-            'sci_CO2_N_err_lower': 'N CO2 err low',
-            'sci_CO_N': 'N CO',
-            'sci_CO_N_err_upper': 'N CO err upp',
-            'sci_CO_N_err_lower': 'N CO err low',
-            'sci_H2_N': 'N H2'
-        })
+        df = cat.iloc[valid_indices][columns].reset_index(drop=True)
+        df = df.rename(columns=rename_dict)
+        if df.empty:
+            df = pd.DataFrame([{col: "" for col in df.columns}])
+
     return hv.Table(df)
 
-table = hv.DynamicMap(source_info_table, streams=[selected_indices]).opts(width=1200, height=100)
+table = hv.DynamicMap(source_info_table, streams=[selected_indices]).opts(
+    width=1200, height=100, 
+    # tools=['hover'], 
+    # show_index=False, 
+    title='Source Information Table',
+    selectable=True, # can be selectable but pointless as I only build table from selected indices
+    # selection_policy='union'
+)
 
-
-# Add a DataFrame widget that updates when points are selected
-# table = pn.widgets.DataFrame(cat.iloc[[]].reset_index(drop=True), width=600, height=200, disabled=True)
-
-# def update_table(selected_indices):
-#     if selected_indices is None or len(selected_indices) == 0:
-#         table.value = cat.iloc[[]].reset_index(drop=True)
-#     else:
-#         table.value = cat.iloc[selected_indices].reset_index(drop=True)
-
-# Subscribe the selected_indices stream to update the table - WORKS BUT LOSES LINKS BETWEEN PLOTS
-# selected_indices.add_subscriber(lambda **kwargs: update_table(kwargs.get('selected_indices', [])))
+table_stream = hv.streams.Selection1D(source=table).rename(index='index_table')
+table_stream.add_subscriber(update_selected_indices)
 
 """ All plots for app layout here """
 # Pair the plots so that selections in one update the other and axes stay synced
@@ -626,7 +644,7 @@ if __name__ == "__main__":
     app = pn.Column(
         app_bar,
         pn.Spacer(height=10),
-        label_toggle,
+        pn.Row(label_toggle, search_bar), #, search_button),
         pn.Row(
             layout, 
             pn.Column(
@@ -660,24 +678,3 @@ if __name__ == "__main__":
 
     # Launch Panel app in browser
     pn.serve(app, show=True, title="ice Mapping interface (iMi)")
-
-# # Add a DataFrame widget that updates when points are selected
-# table = pn.widgets.DataFrame(cat.iloc[[]], width=400, height=200, disabled=True)
-
-# # Update the table based on selected points
-# def update_table(index):
-#     if index is None or len(index) == 0:
-#         table.value = cat.iloc[[]]
-#     else:
-#         table.value = cat.iloc[index]   
-
-# points_stream.add_subscriber(lambda: update_table(points_stream.index))
-
-# dashboard = pn.Column(
-#     "# FITS Image and Catalog Overlay",
-#     plot,
-#     # pn.pane.Markdown("## Selected Catalog Entries"),
-#     # table
-# )
-
-# dashboard.servable()
