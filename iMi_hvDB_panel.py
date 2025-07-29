@@ -7,7 +7,7 @@ import warnings
 import numpy as np
 import panel as pn
 
-hv.extension('bokeh', 'matplotlib')
+hv.extension('bokeh') # 'matplotlib') # 
 from holoviews.operation.datashader import rasterize
 from holoviews import opts
 from holoviews.streams import Selection1D
@@ -28,10 +28,10 @@ cat['ID'] = cat.index
 # cat = cat[['ID', 'x_pix', 'y_pix', 'H2O_RA', 'H2O_Dec', 'H2O_N', 'H2O_N_err_lower', 'H2O_N_err_upper', 'H2O_WLs',]]# 'H2O_Fluxes', 'H2O_FluxErrs','H2O_Baseline', 'H2O_Baseline_err', 'H2O_OD_spec', 'H2O_OD_spec_err']]
 
 ## Cannot find way to label hover points with scientific notation therefore...
-cat['H2O_N_sci'] = cat['H2O_N'].apply(lambda x: f"{x:.3e}")
-cat['CO2_N_sci'] = cat['CO2_N'].apply(lambda x: f"{x:.3e}")
-cat['CO_N_sci'] = cat['CO_N'].apply(lambda x: f"{x:.3e}")
-cat['H2_N_sci'] = cat['H2_N'].apply(lambda x: f"{x:.3e}")
+cat['sci_H2O_N'] = cat['H2O_N'].apply(lambda x: f"{x:.3e}")
+cat['sci_CO2_N'] = cat['CO2_N'].apply(lambda x: f"{x:.3e}")
+cat['sci_CO_N'] = cat['CO_N'].apply(lambda x: f"{x:.3e}")
+cat['sci_H2_N'] = cat['H2_N'].apply(lambda x: f"{x:.3e}")
 
 
 """ 
@@ -72,25 +72,25 @@ def update_selected_indices(index=[], index_CO2=[], index_CO = [], index_H2O=[])
 
 def plot_source_locations(selected_indices):
     points = hv.Points(cat, kdims=['x_pix', 'y_pix'],vdims=['ID','H2O_RA','H2O_Dec',
-                                                            'H2O_N_sci','H2O_N_err_lower','H2O_N_err_upper',
-                                                            'CO2_N_sci','CO2_N_err_lower','CO2_N_err_upper',
-                                                            'CO_N_sci','CO_N_err_lower','CO_N_err_upper',
-                                                            'H2_N_sci']).opts(
+                                                            'sci_H2O_N','H2O_N_err_lower','H2O_N_err_upper',
+                                                            'sci_CO2_N','CO2_N_err_lower','CO2_N_err_upper',
+                                                            'sci_CO_N','CO_N_err_lower','CO_N_err_upper',
+                                                            'sci_H2_N']).opts(
         marker='square', size=6, color='blue', fill_color=None,
         tools=['tap','lasso_select', 'hover'],
         hover_tooltips=[('ID', '@ID'),
                         ('RA', '@H2O_RA'), 
                         ('Dec', '@H2O_Dec'), 
-                        ('N H2O', '@H2O_N_sci'),  # scientific notation
+                        ('N H2O', '@sci_H2O_N'),  # scientific notation
                         # ('H2O_N_err_lower', '@H2O_N_err_lower'), 
                         # ('H2O_N_err_upper', '@H2O_N_err_upper'), 
-                        ('N CO2', '@CO2_N_sci'), 
+                        ('N CO2', '@sci_CO2_N'), 
                         # ('CO2_N_err_lower', '@CO2_N_err_lower'), 
                         # ('CO2_N_err_upper', '@CO2_N_err_upper')
-                        ('N CO', '@CO_N_sci'), 
+                        ('N CO', '@sci_CO_N'), 
                         # ('CO_N_err_lower', '@CO_N_err_lower'), 
                         # ('CO_N_err_upper', '@CO_N_err_upper')
-                        ('N H2', '@H2_N_sci'),
+                        ('N H2', '@sci_H2_N'),
                         ], 
         selected=selected_indices,
         selection_color='green', 
@@ -158,35 +158,37 @@ def plot_h2_vs_h2o(selected_indices):
     indices = selected_indices if selected_indices and len(selected_indices) > 0 else []
 
     if indices:
-        selected = cat#.iloc[indices]
         scatter = hv.Points(
-            selected,
-            kdims=['H2_N', 'H2O_N'], vdims=['ID', 'H2_N_sci', 'H2O_N_sci']
+            cat,
+            kdims=['H2_N', 'H2O_N'], vdims=['ID', 'sci_H2_N', 'sci_H2O_N']
         ).opts(width=400, height=400,
             color='blue', size=6, marker='circle', alpha=0.7,
-                tools=['hover'],
-                xlabel='H2_N', ylabel='H2O_N', title='N H2 vs. N H2O',
+                tools=['hover', 'tap', 'lasso_select'],
+                xlabel='N H$_2$', ylabel='N H$_2$O', title='N H$_2$ vs. N H$_2$O',
                 hover_tooltips=[
                 ('ID', '@ID'),
-                ('H2_N', '@H2_N_sci'),
-                ('H2O_N', '@H2O_N_sci')
-                ], selected=indices,
+                ('N H$_2$O', '@sci_H2O_N'),
+                ('N H$_2$', '@sci_H2_N'),
+                ], 
+                selected=indices,
                 nonselection_alpha=0.1,
             )
      
     else:
         scatter = hv.Points(
             cat,
-            kdims=['H2_N', 'H2O_N'], vdims=['ID','H2_N_sci', 'H2O_N_sci']
+            kdims=['H2_N', 'H2O_N'], vdims=['ID','sci_H2_N', 'sci_H2O_N']
         ).opts(width=400, height=400,
             color='blue', size=6, marker='circle', alpha=0.4,
-            tools=['hover'],
-            xlabel='H2_N', ylabel='H2O_N', title='N H2 vs. N H2O',
-            hover_tooltips=[('ID', '@ID'), ('H2_N', '@H2_N_sci'), ('H2O_N', '@H2O_N_sci')],
+            tools=['hover', 'tap', 'lasso_select'],
+            xlabel='N H$_2$', ylabel='N H$_2$O', title='N H$_2$ vs. N H$_2$O',
+            hover_tooltips=[('ID', '@ID'), 
+                            ('N H$_2$', '@sci_H2_N'), 
+                            ('N H$_2$O', '@sci_H2O_N')],
         )
     return scatter
 
-scatter_H2O = hv.DynamicMap(plot_h2_vs_h2o, streams=[selected_indices]).opts(tools=['hover', 'tap', 'lasso_select'])
+scatter_H2O = hv.DynamicMap(plot_h2_vs_h2o, streams=[selected_indices])
 scatter_H2O_stream = hv.streams.Selection1D(source=scatter_H2O).rename(index='index_H2O')
 
 scatter_H2O_stream.add_subscriber(update_selected_indices)
@@ -194,31 +196,34 @@ scatter_H2O_stream.add_subscriber(update_selected_indices)
 def plot_h2_vs_co2(selected_indices):
     indices = selected_indices if selected_indices and len(selected_indices) > 0 else []
     if indices:
-        selected = cat#.iloc[indices]
         scatter = hv.Points(
-            selected,
-            kdims=['H2_N', 'CO2_N'], vdims=['ID','H2_N_sci', 'CO2_N_sci']
+            cat,
+            kdims=['H2_N', 'CO2_N'], vdims=['ID','sci_H2_N', 'sci_CO2_N']
         ).opts(width=400, height=400,
             color='green', size=6, marker='circle', alpha=0.7,
-            tools=['hover'],
-            xlabel='H2_N', ylabel='CO2_N', title='N H2 vs. N CO2',
-            hover_tooltips=[('ID', '@ID'), ('H2_N', '@H2_N_sci'), ('CO2_N', '@CO2_N_sci')],
+            tools=['hover', 'tap', 'lasso_select'],
+            xlabel='N H_2', ylabel='N CO_2', title='N H_2 vs. N CO_2',
+            hover_tooltips=[('ID', '@ID'), 
+            ('N H$_2$', '@sci_H2_N'), 
+            ('N CO$_2$', '@sci_CO2_N')],
             selected=indices,
             nonselection_alpha=0.1,
         )
     else:
         scatter = hv.Points(
             cat,
-            kdims=['H2_N', 'CO2_N'], vdims=['ID','H2_N_sci', 'CO2_N_sci']
+            kdims=['H2_N', 'CO2_N'], vdims=['ID','sci_H2_N', 'sci_CO2_N']
         ).opts(width=400, height=400,
             color='green', size=6, marker='circle', alpha=0.4,
-            tools=['hover'],
-            xlabel='H2_N', ylabel='CO2_N', title='N H2 vs. N CO2',
-            hover_tooltips=[('ID', '@ID'), ('H2_N', '@H2_N_sci'), ('CO2_N', '@CO2_N_sci')],
+            tools=['hover', 'tap', 'lasso_select'],
+            xlabel='N H$_2$', ylabel='N CO$_2$', title='N H$_2$ vs. N CO$_2$',
+            hover_tooltips=[('ID', '@ID'), 
+            ('N H$_2$', '@sci_H2_N'), 
+            ('N CO$_2$', '@sci_CO2_N')],
         )
     return scatter
 
-scatter_CO2 = hv.DynamicMap(plot_h2_vs_co2, streams=[selected_indices]).opts(tools=['hover', 'tap', 'lasso_select'])
+scatter_CO2 = hv.DynamicMap(plot_h2_vs_co2, streams=[selected_indices])
 scatter_CO2_stream = hv.streams.Selection1D(source=scatter_CO2).rename(index='index_CO2')
 
 scatter_CO2_stream.add_subscriber(update_selected_indices)
@@ -227,33 +232,32 @@ scatter_CO2_stream.add_subscriber(update_selected_indices)
 def plot_h2_vs_co(selected_indices):
     indices = selected_indices if selected_indices and len(selected_indices) > 0 else []
     if indices:
-        selected = cat#.iloc[indices]
         scatter = hv.Points(
-            selected,
-            kdims=['H2_N', 'CO_N'], vdims=['ID','H2_N_sci', 'CO_N_sci']
+            cat,
+            kdims=['H2_N', 'CO_N'], vdims=['ID','sci_H2_N', 'sci_CO_N']
         ).opts(
             width=400, height=400,
             color='red', size=6, marker='circle', alpha=0.7,
-            tools=['hover'],
-            xlabel='H2_N', ylabel='CO_N', title='N H2 vs. N CO',
-            hover_tooltips=[('ID', '@ID'), ('H2_N', '@H2_N_sci'), ('CO_N', '@CO_N_sci')],
+            tools=['hover', 'tap', 'lasso_select'],
+            xlabel='N H$_2$', ylabel='N CO', title='N H$_2$ vs. N CO',
+            hover_tooltips=[('ID', '@ID'), ('N H$_2$', '@sci_H2_N'), ('N CO', '@sci_CO_N')],
             selected=indices,
             nonselection_alpha=0.1,
         )
     else:
         scatter = hv.Points(
             cat,
-            kdims=['H2_N', 'CO_N'], vdims=['ID','H2_N_sci', 'CO_N_sci']
+            kdims=['H2_N', 'CO_N'], vdims=['ID','sci_H2_N', 'sci_CO_N']
         ).opts(
             width=400, height=400,
             color='red', size=6, marker='circle', alpha=0.4,
-            tools=['hover'],
-            xlabel='H2_N', ylabel='CO_N', title='N H2 vs. N CO',
-            hover_tooltips=[('ID', '@ID'), ('H2_N', '@H2_N_sci'), ('CO_N', '@CO_N_sci')],
+            tools=['hover', 'tap', 'lasso_select'],
+            xlabel='N H$_2$', ylabel='N CO', title='N H$_2$ vs. N CO',
+            hover_tooltips=[('ID', '@ID'), ('N H$_2$', '@sci_H2_N'), ('N CO', '@sci_CO_N')],
         )
     return scatter
 
-scatter_CO = hv.DynamicMap(plot_h2_vs_co, streams=[selected_indices]).opts(tools=['hover', 'tap', 'lasso_select'])
+scatter_CO = hv.DynamicMap(plot_h2_vs_co, streams=[selected_indices])
 scatter_CO_stream = hv.streams.Selection1D(source=scatter_CO).rename(index='index_CO')
 
 scatter_CO_stream.add_subscriber(update_selected_indices)
@@ -330,9 +334,9 @@ def plot_od_spectrum(selected_indices):
 
 def source_info_table(selected_indices):
     if selected_indices is None or len(selected_indices) == 0:
-        df = cat.iloc[[]][['ID', 'H2O_RA', 'H2O_Dec', 'H2O_N_sci', 'H2O_N_err_upper', 'H2O_N_err_lower', 'H2_N']].reset_index(drop=True)
+        df = cat.iloc[[]][['ID', 'H2O_RA', 'H2O_Dec', 'sci_H2O_N', 'H2O_N_err_upper', 'H2O_N_err_lower', 'H2_N']].reset_index(drop=True)
     else:
-        df = cat.iloc[selected_indices][['ID', 'H2O_RA', 'H2O_Dec', 'H2O_N_sci', 'H2O_N_err_upper', 'H2O_N_err_lower', 'H2_N']].reset_index(drop=True)
+        df = cat.iloc[selected_indices][['ID', 'H2O_RA', 'H2O_Dec', 'sci_H2O_N', 'H2O_N_err_upper', 'H2O_N_err_lower', 'H2_N']].reset_index(drop=True)
     return hv.Table(df)
 
 table = hv.DynamicMap(source_info_table, streams=[selected_indices]).opts(width=600, height=100)
