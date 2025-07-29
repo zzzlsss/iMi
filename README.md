@@ -4,7 +4,9 @@ Welcome fellow ice chasers!
 
 Here at iMi inc. we are driven to provide first class wide-scale cloud ice map data visualisation for you and your datasets! For us to be able to do this, there are some small requirements of you, the user.
 
-Please ensure you are using image data as a __FITS__ file (**Decision required** or 2D array .npy with a WCS information pickle file) and the analysis information as a pandas \texttt{DataFrame} with these columns (specifically formatted like so - case-sensitive names but not column-order-sensitive):
+Please ensure you are 
+1. Using image data as a __FITS__ file (**Decision required:** or 2D array .npy with a WCS information pickle file)
+2. The analysis information is stored as a  \texttt{pandas DataFrame} with these columns (specifically formatted like so - case-sensitive names but not column-order-sensitive):
 - ID
 - RA
 - Dec
