@@ -345,15 +345,39 @@ def plot_od_spectrum(selected_indices):
 
             h2o_od_curve = hv.Curve((h2o_wls, h2o_od), 'Wavelength (μm)', 'Optical Depth').opts(color=color, title=title, alpha=0.75, line_width=0.75)
 
+            # Add fill_between region for H2O OD between 2.715 and 3.35 μm
+            h2o_mask = (h2o_wls >= 2.715) & (h2o_wls <= 3.35)
+            if np.any(h2o_mask):
+                fill_between = hv.Area((h2o_wls[h2o_mask], h2o_od[h2o_mask])).opts(
+                    color='lightblue', alpha=0.4, line_alpha=0
+                )
+                h2o_od_curve = h2o_od_curve * fill_between
+
             co2_wls = np.array(row['CO2_WLs'])
             co2_od = np.array(row['CO2_OD_spec'])
 
             co2_od_curve = hv.Curve((co2_wls, co2_od), 'Wavelength (μm)', 'Optical Depth').opts(color=color, alpha=0.75, line_width=0.75)
 
+            # Add fill_between region for CO2 OD between 2.715 and 3.35 μm
+            co2_mask = (co2_wls >= 4.2) & (co2_wls <= 4.34)
+            if np.any(co2_mask):
+                fill_between = hv.Area((co2_wls[co2_mask], co2_od[co2_mask])).opts(
+                    color='purple', alpha=0.4, line_alpha=0
+                )
+                co2_od_curve = co2_od_curve * fill_between
+
             co_wls = np.array(row['CO_WLs'])
             co_od = np.array(row['CO_OD_spec'])
 
             co_od_curve = hv.Curve((co_wls, co_od), 'Wavelength (μm)', 'Optical Depth').opts(color=color, alpha=0.75, line_width=0.75)
+
+            # Add fill_between region for CO OD between 2.715 and 3.35 μm
+            co_mask = (co_wls >= 4.65) & (co_wls <= 4.705)
+            if np.any(co_mask):
+                fill_between = hv.Area((co_wls[co_mask], co_od[co_mask])).opts(
+                    color='green', alpha=0.4, line_alpha=0
+                )
+                co_od_curve = co_od_curve * fill_between
 
             overlays.append(h2o_od_curve * co2_od_curve * co_od_curve)
     else:
