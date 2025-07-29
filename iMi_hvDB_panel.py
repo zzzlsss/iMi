@@ -68,11 +68,21 @@ img = rasterize(
     precompute=True,
 ).opts(colorbar=True, cmap='gist_heat', width=600, height=600)
 
-"""Utility function to converst arbitrary LaTeX-like strings into 
+
+"""Utility data class to convert arbitrary LaTeX-like strings into 
 appropriate format for plotting as axis labels with Bokeh"""
-def make_latex_label_string(latex_like_string):
-    latex_label_string= re.sub(r"([^\^_0-9]+)", r"\\text{{\1}}", latex_like_string.replace("$", ""))
-    return f"$${latex_label_string}$$"
+
+class RenderLatexLabels(hv.streams.Stream):
+
+    do_render_latex_labels = hv.param.Boolean(default=False, doc="Should labels be rendered as latex?")
+
+    def make_latex_label_string(self, latex_like_string):
+        if not self.do_render_latex_labels:
+            return latex_like_string
+        latex_label_string= re.sub(r"([^\^_0-9]+)", r"\\text{{\1}}", latex_like_string.replace("$", ""))
+        return f"$${latex_label_string}$$"
+
+rll = RenderLatexLabels(do_render_latex_labels = False, transient=False)
 
 """ 
 Linked materials
@@ -90,13 +100,17 @@ This will allow us to select points and update the spectrum plot dynamically
 class SelectedIndices(hv.streams.Stream):
     selected_indices = hv.param.List(default=[], doc="Selected object indices")
 
-selected_indices = SelectedIndices(selected_indices = [], transient=True)
+
+selected_indices = SelectedIndices(selected_indices = [], transient=False)
+
+
+
 
 def update_selected_indices(index=[], index_CO2=[], index_CO = [], index_H2O=[], index_H2O_CO2=[], index_H2O_CO=[], index_CO2_CO=[]):
     combined_indices = list(set(index + index_CO2 + index_CO + index_H2O + index_H2O_CO2 + index_H2O_CO + index_CO2_CO))
     selected_indices.event(selected_indices=combined_indices)
 
-def plot_source_locations(selected_indices):
+def plot_source_locations(selected_indices, *args, **kwargs):
     points = hv.Points(cat, kdims=['x_pix', 'y_pix'],vdims=['ID','H2O_RA','H2O_Dec',
                                                             'sci_H2O_N','H2O_N_err_lower','H2O_N_err_upper',
                                                             'sci_CO2_N','CO2_N_err_lower','CO2_N_err_upper',
@@ -131,7 +145,7 @@ def plot_source_locations(selected_indices):
 
 points = hv.DynamicMap(plot_source_locations, streams=[selected_indices])
 
-def plot_labels(selected_indices=[], show_labels=True):
+def plot_labels(selected_indices=[], show_labels=True, *args, **kwargs):
     """
     Plot labels for selected points in the catalog.
     """
@@ -169,7 +183,7 @@ label_toggle.param.watch(update_show_labels, 'value')
 
 # DynamicMap for labels, using the toggle button value
 labels = hv.DynamicMap(
-    lambda selected_indices, show_labels: plot_labels(selected_indices, show_labels),
+    lambda selected_indices, show_labels, *args, **kwargs: plot_labels(selected_indices, show_labels),
     streams=[selected_indices, show_labels_stream]
 )
 
@@ -179,7 +193,7 @@ labels = hv.DynamicMap(
 points_stream = hv.streams.Selection1D(source=points) #.rename(index='index_map')
 points_stream.add_subscriber(update_selected_indices)
 
-def plot_h2_vs_h2o(selected_indices):
+def plot_h2_vs_h2o(selected_indices, *args, **kwargs):
     indices = selected_indices if selected_indices and len(selected_indices) > 0 else []
 
     if indices:
@@ -189,8 +203,7 @@ def plot_h2_vs_h2o(selected_indices):
         ).opts(width=400, height=400,
             color='blue', size=6, marker='circle', alpha=0.7,
                 tools=['hover', 'tap', 'lasso_select'],
-                # xlabel=make_latex_label_string('N H$_2$'), ylabel=make_latex_label_string('N H$_2$O'), title=make_latex_label_string('N H$_2$ vs. N H$_2$O'),
-            xlabel='N H$_2$', ylabel='N H$_2$O', title='N H$_2$ vs. N H$_2$O',
+                xlabel=rll.make_latex_label_string('N H$_2$'), ylabel=rll.make_latex_label_string('N H$_2$O'), title=rll.make_latex_label_string('N H$_2$ vs. N H$_2$O'),
                 hover_tooltips=[
                 ('ID', '@ID'),
                 ('N H$_2$O', '@sci_H2O_N'),
@@ -207,8 +220,7 @@ def plot_h2_vs_h2o(selected_indices):
         ).opts(width=400, height=400,
             color='blue', size=6, marker='circle', alpha=0.4,
             tools=['hover', 'tap', 'lasso_select'],
-            # xlabel=make_latex_label_string('N H$_2$'), ylabel=make_latex_label_string('N H$_2$O'), title=make_latex_label_string('N H$_2$ vs. N H$_2$O'),
-            xlabel='N H$_2$', ylabel='N H$_2$O', title='N H$_2$ vs. N H$_2$O',
+            xlabel=rll.make_latex_label_string('N H$_2$'), ylabel=rll.make_latex_label_string('N H$_2$O'), title=rll.make_latex_label_string('N H$_2$ vs. N H$_2$O'),
             hover_tooltips=[
                 ('ID', '@ID'),
                 ('N H$_2$O', '@sci_H2O_N'),
@@ -217,11 +229,11 @@ def plot_h2_vs_h2o(selected_indices):
         )
     return scatter
 
-scatter_H2O = hv.DynamicMap(plot_h2_vs_h2o, streams=[selected_indices])
+scatter_H2O = hv.DynamicMap(plot_h2_vs_h2o, streams=[selected_indices, rll])
 scatter_H2O_stream = hv.streams.Selection1D(source=scatter_H2O).rename(index='index_H2O')
 scatter_H2O_stream.add_subscriber(update_selected_indices)
 
-def plot_h2_vs_co2(selected_indices):
+def plot_h2_vs_co2(selected_indices, *args, **kwargs):
     indices = selected_indices if selected_indices and len(selected_indices) > 0 else []
     if indices:
         scatter = hv.Points(
@@ -230,8 +242,7 @@ def plot_h2_vs_co2(selected_indices):
         ).opts(width=400, height=400,
             color='purple', size=6, marker='circle', alpha=0.7,
             tools=['hover', 'tap', 'lasso_select'],
-            # xlabel=make_latex_label_string('N H_2'), ylabel=make_latex_label_string('N CO_2'), title=make_latex_label_string('N H_2 vs. N CO_2'),
-            xlabel='N H$_2$', ylabel='N CO$_2$', title='N H$_2$ vs. N CO$_2$',
+            xlabel=rll.make_latex_label_string('N H_2'), ylabel=rll.make_latex_label_string('N CO_2'), title=rll.make_latex_label_string('N H_2 vs. N CO_2'),
             hover_tooltips=[('ID', '@ID'), 
             ('N H$_2$', '@sci_H2_N'), 
             ('N CO$_2$', '@sci_CO2_N')],
@@ -245,20 +256,19 @@ def plot_h2_vs_co2(selected_indices):
         ).opts(width=400, height=400,
             color='purple', size=6, marker='circle', alpha=0.4,
             tools=['hover', 'tap', 'lasso_select'],
-            # xlabel=make_latex_label_string('N H$_2$'), ylabel=make_latex_label_string('N CO$_2$'), title=make_latex_label_string('N H$_2$ vs. N CO$_2$'),
-            xlabel='N H$_2$', ylabel='N CO$_2$', title='N H$_2$ vs. N CO$_2$',
+            xlabel=rll.make_latex_label_string('N H$_2$'), ylabel=rll.make_latex_label_string('N CO$_2$'), title=rll.make_latex_label_string('N H$_2$ vs. N CO$_2$'),
             hover_tooltips=[('ID', '@ID'), 
             ('N H$_2$', '@sci_H2_N'), 
             ('N CO$_2$', '@sci_CO2_N')],
         )
     return scatter
 
-scatter_CO2 = hv.DynamicMap(plot_h2_vs_co2, streams=[selected_indices])
+scatter_CO2 = hv.DynamicMap(plot_h2_vs_co2, streams=[selected_indices, rll])
 scatter_CO2_stream = hv.streams.Selection1D(source=scatter_CO2).rename(index='index_CO2')
 scatter_CO2_stream.add_subscriber(update_selected_indices)
 
 
-def plot_h2_vs_co(selected_indices):
+def plot_h2_vs_co(selected_indices, *args, **kwargs):
     indices = selected_indices if selected_indices and len(selected_indices) > 0 else []
     if indices:
         scatter = hv.Points(
@@ -268,8 +278,7 @@ def plot_h2_vs_co(selected_indices):
             width=400, height=400,
             color='green', size=6, marker='circle', alpha=0.7,
             tools=['hover', 'tap', 'lasso_select'],
-            # xlabel=make_latex_label_string('N H$_2$'), ylabel=make_latex_label_string('N CO'), title=make_latex_label_string('N H$_2$ vs. N CO'),
-            xlabel='N H$_2$', ylabel='N CO', title='N H$_2$ vs. N CO',
+            xlabel=rll.make_latex_label_string('N H$_2$'), ylabel=rll.make_latex_label_string('N CO'), title=rll.make_latex_label_string('N H$_2$ vs. N CO'),
             hover_tooltips=[('ID', '@ID'), ('N H$_2$', '@sci_H2_N'), ('N CO', '@sci_CO_N')],
             selected=indices,
             nonselection_alpha=0.1,
@@ -282,19 +291,18 @@ def plot_h2_vs_co(selected_indices):
             width=400, height=400,
             color='green', size=6, marker='circle', alpha=0.4,
             tools=['hover', 'tap', 'lasso_select'],
-            # xlabel=make_latex_label_string('N H$_2$'), ylabel=make_latex_label_string('N CO'), title=make_latex_label_string('N H$_2$ vs. N CO'),
-            xlabel='N H$_2$', ylabel='N CO', title='N H$_2$ vs. N CO',
+            xlabel=rll.make_latex_label_string('N H$_2$'), ylabel=rll.make_latex_label_string('N CO'), title=rll.make_latex_label_string('N H$_2$ vs. N CO'),
             hover_tooltips=[('ID', '@ID'), ('N H$_2$', '@sci_H2_N'), ('N CO', '@sci_CO_N')],
         )
     return scatter
 
-scatter_CO = hv.DynamicMap(plot_h2_vs_co, streams=[selected_indices])
+scatter_CO = hv.DynamicMap(plot_h2_vs_co, streams=[selected_indices, rll])
 scatter_CO_stream = hv.streams.Selection1D(source=scatter_CO).rename(index='index_CO')
 scatter_CO_stream.add_subscriber(update_selected_indices)
 
 """ Ice Ratio Plots """
 
-def plot_h2o_vs_co2(selected_indices):
+def plot_h2o_vs_co2(selected_indices, *args, **kwargs):
     indices = selected_indices if selected_indices and len(selected_indices) > 0 else []
     if indices:
         scatter = hv.Points(
@@ -304,7 +312,7 @@ def plot_h2o_vs_co2(selected_indices):
             width=400, height=400,
             color='k', size=6, marker='circle', alpha=0.7,
             tools=['hover', 'tap', 'lasso_select'],
-            xlabel='N H$_2$O', ylabel='N CO$_2$', title='N H$_2$O vs. N CO$_2$',
+            xlabel=rll.make_latex_label_string('N H$_2$O'), ylabel=rll.make_latex_label_string('N CO$_2$'), title=rll.make_latex_label_string('N H$_2$O vs. N CO$_2$'),
             hover_tooltips=[
                 ('ID', '@ID'),
                 ('N H$_2$O', '@sci_H2O_N'),
@@ -321,7 +329,7 @@ def plot_h2o_vs_co2(selected_indices):
             width=400, height=400,
             color='k', size=6, marker='circle', alpha=0.4,
             tools=['hover', 'tap', 'lasso_select'],
-            xlabel='N H$_2$O', ylabel='N CO$_2$', title='N H$_2$O vs. N CO$_2$',
+            xlabel=rll.make_latex_label_string('N H$_2$O'), ylabel=rll.make_latex_label_string('N CO$_2$'), title=rll.make_latex_label_string('N H$_2$O vs. N CO$_2$'),
             hover_tooltips=[
                 ('ID', '@ID'),
                 ('N H$_2$O', '@sci_H2O_N'),
@@ -330,11 +338,11 @@ def plot_h2o_vs_co2(selected_indices):
         )
     return scatter
 
-scatter_H2O_CO2 = hv.DynamicMap(plot_h2o_vs_co2, streams=[selected_indices])
+scatter_H2O_CO2 = hv.DynamicMap(plot_h2o_vs_co2, streams=[selected_indices, rll])
 scatter_H2O_CO2_stream = hv.streams.Selection1D(source=scatter_H2O_CO2).rename(index='index_H2O_CO2')
 scatter_H2O_CO2_stream.add_subscriber(update_selected_indices)
 
-def plot_h2o_vs_co(selected_indices):
+def plot_h2o_vs_co(selected_indices, *args, **kwargs):
     indices = selected_indices if selected_indices and len(selected_indices) > 0 else []
     if indices:
         scatter = hv.Points(
@@ -344,7 +352,7 @@ def plot_h2o_vs_co(selected_indices):
             width=400, height=400,
             color='k', size=6, marker='circle', alpha=0.7,
             tools=['hover', 'tap', 'lasso_select'],
-            xlabel='N H$_2$O', ylabel='N CO', title='N H$_2$O vs. N CO',
+            xlabel=rll.make_latex_label_string('N H$_2$O'), ylabel=rll.make_latex_label_string('N CO'), title=rll.make_latex_label_string('N H$_2$O vs. N CO'),
             hover_tooltips=[
                 ('ID', '@ID'),
                 ('N H$_2$O', '@sci_H2O_N'),
@@ -361,7 +369,7 @@ def plot_h2o_vs_co(selected_indices):
             width=400, height=400,
             color='k', size=6, marker='circle', alpha=0.4,
             tools=['hover', 'tap', 'lasso_select'],
-            xlabel='N H$_2$O', ylabel='N CO', title='N H$_2$O vs. N CO',
+            xlabel=rll.make_latex_label_string('N H$_2$O'), ylabel=rll.make_latex_label_string('N CO'), title=rll.make_latex_label_string('N H$_2$O vs. N CO'),
             hover_tooltips=[
                 ('ID', '@ID'),
                 ('N H$_2$O', '@sci_H2O_N'),
@@ -370,11 +378,11 @@ def plot_h2o_vs_co(selected_indices):
         )
     return scatter
 
-scatter_H2O_CO = hv.DynamicMap(plot_h2o_vs_co, streams=[selected_indices])
+scatter_H2O_CO = hv.DynamicMap(plot_h2o_vs_co, streams=[selected_indices, rll])
 scatter_H2O_CO_stream = hv.streams.Selection1D(source=scatter_H2O_CO).rename(index='index_H2O_CO')
 scatter_H2O_CO_stream.add_subscriber(update_selected_indices)
 
-def plot_co_vs_co2(selected_indices):
+def plot_co_vs_co2(selected_indices, *args, **kwargs):
     indices = selected_indices if selected_indices and len(selected_indices) > 0 else []
     if indices:
         scatter = hv.Points(
@@ -384,7 +392,7 @@ def plot_co_vs_co2(selected_indices):
             width=400, height=400,
             color='k', size=6, marker='circle', alpha=0.7,
             tools=['hover', 'tap', 'lasso_select'],
-            xlabel='N CO', ylabel='N CO$_2$', title='N CO vs. N CO$_2$',
+            xlabel=rll.make_latex_label_string('N CO'), ylabel=rll.make_latex_label_string('N CO$_2$'), title=rll.make_latex_label_string('N CO vs. N CO$_2$'),
             hover_tooltips=[
                 ('ID', '@ID'),
                 ('N CO$_2$', '@sci_CO2_N'),
@@ -401,7 +409,7 @@ def plot_co_vs_co2(selected_indices):
             width=400, height=400,
             color='k', size=6, marker='circle', alpha=0.4,
             tools=['hover', 'tap', 'lasso_select'],
-            xlabel='N CO', ylabel='N CO$_2$', title='N CO vs. N CO$_2$',
+            xlabel=rll.make_latex_label_string('N CO'), ylabel=rll.make_latex_label_string('N CO$_2$'), title=rll.make_latex_label_string('N CO vs. N CO$_2$'),
             hover_tooltips=[
                 ('ID', '@ID'),
                 ('N CO$_2$', '@sci_CO2_N'),
@@ -410,14 +418,14 @@ def plot_co_vs_co2(selected_indices):
         )
     return scatter 
 
-scatter_CO2_CO = hv.DynamicMap(plot_co_vs_co2, streams=[selected_indices])
+scatter_CO2_CO = hv.DynamicMap(plot_co_vs_co2, streams=[selected_indices, rll])
 scatter_CO2_CO_stream = hv.streams.Selection1D(source=scatter_CO2_CO).rename(index='index_CO2_CO')
 scatter_CO2_CO_stream.add_subscriber(update_selected_indices)
 
 """ Spectrum Plots """
 
 # def plot_spectrum(index, index_H2O, index_CO2, index_CO):
-def plot_spectrum(selected_indices):
+def plot_spectrum(selected_indices, *args, **kwargs):
     indices = (selected_indices if selected_indices and len(selected_indices) > 0 else [])
 
     if indices:
@@ -468,7 +476,7 @@ def plot_spectrum(selected_indices):
     return hv.Overlay(overlays).opts(width=600, height=300, xlim=(2.4, 5.1), ylim=(1e-3, 0.7), logy=True)
 
 # def plot_od_spectrum(index, index_H2O, index_CO2, index_CO):
-def plot_od_spectrum(selected_indices):
+def plot_od_spectrum(selected_indices, *args, **kwargs):
     indices = (selected_indices if selected_indices and len(selected_indices) > 0 else [])
 
     # indices = (
@@ -548,7 +556,7 @@ def plot_od_spectrum(selected_indices):
     
 #     overlays.append(baseline_curve)
 
-def source_info_table(selected_indices):
+def source_info_table(selected_indices, *args, **kwargs):
     if selected_indices is None or len(selected_indices) == 0:
         df = cat.iloc[[]][['ID', 'H2O_RA', 'H2O_Dec', 
                            'sci_H2O_N', 'sci_H2O_N_err_upper', 'sci_H2O_N_err_lower',
@@ -622,6 +630,28 @@ app_bar = pn.Row(
 )
 # app_bar
 
+accord=pn.Accordion(
+            ("H2 vs Ice Column Density Correlation Plots", pn.Row(
+                scatter_H2O,
+                scatter_CO2,
+                scatter_CO,
+            )),
+            ("Ice Column Density Ratio Plots", pn.Row(
+                scatter_H2O_CO2,
+                scatter_H2O_CO,
+                scatter_CO2_CO,
+            )),
+            sizing_mode='fixed',
+            width=1200,
+            height=400,
+        )
+
+def toggle_latex_labels(*args, **kwargs):
+    if not rll.do_render_latex_labels:
+        rll.event(do_render_latex_labels = True)
+
+accord.param.watch(toggle_latex_labels, 'active')
+
 if __name__ == "__main__":
     app = pn.Column(
         app_bar,
@@ -636,21 +666,7 @@ if __name__ == "__main__":
             ),
         ),
         table,
-        pn.Accordion(
-            ("H2 vs Ice Column Density Correlation Plots", pn.Row(
-                scatter_H2O,
-                scatter_CO2,
-                scatter_CO,
-            )),
-            ("Ice Column Density Ratio Plots", pn.Row(
-                scatter_H2O_CO2,
-                scatter_H2O_CO,
-                scatter_CO2_CO,
-            )),
-            sizing_mode='fixed',
-            width=1200,
-            height=400,
-        ),
+        accord,
         sizing_mode='stretch_both',
         # margin=(10, 10, 10, 10),
         css_classes=['imi-dashboard']
