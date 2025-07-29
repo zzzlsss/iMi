@@ -284,7 +284,7 @@ def plot_spectrum(selected_indices):
     else:
         overlays = [hv.Curve([], 'Wavelength (μm)', 'Flux').opts(title="No selection") * hv.Curve([], 'Wavelength (μm)', 'Flux (mJy)')]
 
-    return hv.Overlay(overlays).opts(width=600, height=300, xlim=(2.4, 5.1), ylim=(1e-3, 0.7), logy=True)
+    return hv.Overlay(overlays).opts(width=600, height=250, xlim=(2.4, 5.1), ylim=(1e-3, 0.7), logy=True)
 
 # def plot_od_spectrum(index, index_H2O, index_CO2, index_CO):
 def plot_od_spectrum(selected_indices):
@@ -314,7 +314,7 @@ def plot_od_spectrum(selected_indices):
         overlays = [hv.Curve([], 'Wavelength (μm)', 'Optical Depth').opts(title="No selection")]
 
     return hv.Overlay(overlays).opts(
-            width=600, height=300, xlim=(2.4, 5.1), ylim=(-0.2, 5), 
+            width=600, height=250, xlim=(2.4, 5.1), ylim=(-0.2, 5), 
         )
     
 # Shows the zero continuum line
@@ -327,8 +327,28 @@ def plot_od_spectrum(selected_indices):
 #     )
     
 #     overlays.append(baseline_curve)
-    
 
+def source_info_table(selected_indices):
+    if selected_indices is None or len(selected_indices) == 0:
+        df = cat.iloc[[]].reset_index(drop=True)
+    else:
+        df = cat.iloc[selected_indices].reset_index(drop=True)
+    return hv.Table(df)
+
+table = hv.DynamicMap(source_info_table, streams=[selected_indices]).opts(width=600, height=100)
+
+
+# Add a DataFrame widget that updates when points are selected
+# table = pn.widgets.DataFrame(cat.iloc[[]].reset_index(drop=True), width=600, height=200, disabled=True)
+
+# def update_table(selected_indices):
+#     if selected_indices is None or len(selected_indices) == 0:
+#         table.value = cat.iloc[[]].reset_index(drop=True)
+#     else:
+#         table.value = cat.iloc[selected_indices].reset_index(drop=True)
+
+# Subscribe the selected_indices stream to update the table - WORKS BUT LOSES LINKS BETWEEN PLOTS
+# selected_indices.add_subscriber(lambda **kwargs: update_table(kwargs.get('selected_indices', [])))
 
 """ All plots for app layout here """
 # Pair the plots so that selections in one update the other and axes stay synced
@@ -355,6 +375,7 @@ if __name__ == "__main__":
             pn.Column(
                 spectrum_map,
                 od_spectrum_map,
+                table,
             ),
         ),
         pn.Row(
