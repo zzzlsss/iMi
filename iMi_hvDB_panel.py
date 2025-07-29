@@ -275,18 +275,43 @@ def plot_spectrum(selected_indices):
         color_cycle = ['black', 'red', 'green', 'orange', 'purple', 'brown', 'magenta', 'cyan']
         for num, i in enumerate(indices):
             row = cat.iloc[i]
-            wls = np.array(row['H2O_WLs'])
-            fluxes = np.array(row['H2O_Fluxes'])
-            errs = np.array(row['H2O_FluxErrs'])
-            baseline = np.array(row['H2O_Baseline'])
-            color = 'black' if num == 0 else color_cycle[num % len(color_cycle)]
+            
             title = f"Spectrum ID: {row['ID']}" if len(indices) == 1 else f"Spectrum IDs {', '.join(str(cat.iloc[j]['ID']) for j in indices)}"
-            curve = hv.Curve((wls, fluxes), 'Wavelength (μm)', 'Flux (mJy)').opts(
+            color = 'black' if num == 0 else color_cycle[num % len(color_cycle)]
+
+            h2o_wls = np.array(row['H2O_WLs'])
+            h2o_fluxes = np.array(row['H2O_Fluxes'])
+            h2o_baseline = np.array(row['H2O_Baseline'])
+            
+            
+            curve = hv.Curve((h2o_wls, h2o_fluxes), 'Wavelength (μm)', 'Flux (mJy)').opts(
                 xlim=(2.4, 5.1), ylim=(1e-3, 0.7), logy=True, line_width=0.75, color=color, title=title
             )
-            errorbars = hv.Spread((wls, fluxes, errs)).opts(color='blue', alpha=0.4, logy=True)
-            baseline_curve = hv.Curve((wls, baseline)).opts(color='red', line_dash='dashed', alpha=0.7)
-            overlays.append(curve * errorbars * baseline_curve)
+            baseline_curve = hv.Curve((h2o_wls, h2o_baseline)).opts(color='blue', line_dash='dashed', alpha=0.7)
+
+            # Add CO2 spectrum if available
+            # if 'CO2_WLs' in row and 'CO2_Fluxes' in row and row['CO2_WLs'] is not None and row['CO2_Fluxes'] is not None:
+            co2_wls = np.array(row['CO2_WLs'])
+            co2_fluxes = np.array(row['CO2_Fluxes'])
+            co2_baseline = np.array(row['CO2_Baseline'])
+            co2_curve = hv.Curve((co2_wls, co2_fluxes), 'Wavelength (μm)', 'CO2 Flux (mJy)').opts(
+                color=color, line_width=0.75
+            )
+            baseline_co2_curve = hv.Curve((co2_wls, co2_baseline)).opts(color='purple', line_dash='dashed', alpha=0.7)
+
+            # Add CO spectrum if available
+            # if 'CO_WLs' in row and 'CO_Fluxes' in row and row['CO_WLs'] is not None and row['CO_Fluxes'] is not None:
+            co_wls = np.array(row['CO_WLs'])
+            co_fluxes = np.array(row['CO_Fluxes'])
+            co_baseline = np.array(row['CO_Baseline'])
+            co_curve = hv.Curve((co_wls, co_fluxes), 'Wavelength (μm)', 'CO Flux (mJy)').opts(
+                color=color, line_width=0.75
+            )
+            baseline_co_curve = hv.Curve((co_wls, co_baseline)).opts(color='green', line_dash='dashed', alpha=0.7)
+
+            overlays.append(curve * baseline_curve * co2_curve * baseline_co2_curve * co_curve * baseline_co_curve)
+            # else:
+            #     overlays.append(curve * baseline_curve)
     else:
         overlays = [hv.Curve([], 'Wavelength (μm)', 'Flux').opts(title="No selection") * hv.Curve([], 'Wavelength (μm)', 'Flux (mJy)')]
 
@@ -309,13 +334,28 @@ def plot_od_spectrum(selected_indices):
     if indices:
         for num, i in enumerate(indices):
             row = cat.iloc[i]
-            wls = np.array(row['H2O_WLs'])
-            od = np.array(row['H2O_OD_spec'])
+            
+            title = f"OD Spectrum ID {row['ID']}" if len(indices) == 1 else f"OD Spectrum IDs {', '.join(str(cat.iloc[j]['ID']) for j in indices)}"
             color = color_cycle[num % len(color_cycle)] if len(indices) > 1 else 'black'
             if num == 0:
                 color = 'black'
-            title = f"OD Spectrum ID {row['ID']}" if len(indices) == 1 else f"OD Spectrum IDs {', '.join(str(cat.iloc[j]['ID']) for j in indices)}"
-            overlays.append(hv.Curve((wls, od), 'Wavelength (μm)', 'Optical Depth').opts(color=color, title=title, alpha=0.75, line_width=0.75))
+
+            h2o_wls = np.array(row['H2O_WLs'])
+            h2o_od = np.array(row['H2O_OD_spec'])
+
+            h2o_od_curve = hv.Curve((h2o_wls, h2o_od), 'Wavelength (μm)', 'Optical Depth').opts(color=color, title=title, alpha=0.75, line_width=0.75)
+
+            co2_wls = np.array(row['CO2_WLs'])
+            co2_od = np.array(row['CO2_OD_spec'])
+
+            co2_od_curve = hv.Curve((co2_wls, co2_od), 'Wavelength (μm)', 'Optical Depth').opts(color=color, alpha=0.75, line_width=0.75)
+
+            co_wls = np.array(row['CO_WLs'])
+            co_od = np.array(row['CO_OD_spec'])
+
+            co_od_curve = hv.Curve((co_wls, co_od), 'Wavelength (μm)', 'Optical Depth').opts(color=color, alpha=0.75, line_width=0.75)
+
+            overlays.append(h2o_od_curve * co2_od_curve * co_od_curve)
     else:
         overlays = [hv.Curve([], 'Wavelength (μm)', 'Optical Depth').opts(title="No selection")]
 
