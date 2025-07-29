@@ -19,7 +19,7 @@ from holoviews.streams import Selection1D
 from bokeh.models import HoverTool, NumeralTickFormatter
 hv.extension('bokeh') # 'matplotlib') # 
 
-zakapo = False
+zakapo = True
 
 if zakapo:
     FITS_FILE_PATH = '/Volumes/ZLS HD/PhD_Documents/Astro_Projects/Ice_Proposals/IceAge_ERS/Spectral_Extraction_Code/Real_Data_Code/FW_Files/IceAge_CHAMMS1-C2-FIELD_lw_F410M_visitall_modall_i2d.fits'
@@ -189,7 +189,8 @@ def plot_h2_vs_h2o(selected_indices):
         ).opts(width=400, height=400,
             color='blue', size=6, marker='circle', alpha=0.7,
                 tools=['hover', 'tap', 'lasso_select'],
-                xlabel=make_latex_label_string('N H$_2$'), ylabel=make_latex_label_string('N H$_2$O'), title=make_latex_label_string('N H$_2$ vs. N H$_2$O'),
+                # xlabel=make_latex_label_string('N H$_2$'), ylabel=make_latex_label_string('N H$_2$O'), title=make_latex_label_string('N H$_2$ vs. N H$_2$O'),
+            xlabel='N H$_2$', ylabel='N H$_2$O', title='N H$_2$ vs. N H$_2$O',
                 hover_tooltips=[
                 ('ID', '@ID'),
                 ('N H$_2$O', '@sci_H2O_N'),
@@ -206,7 +207,8 @@ def plot_h2_vs_h2o(selected_indices):
         ).opts(width=400, height=400,
             color='blue', size=6, marker='circle', alpha=0.4,
             tools=['hover', 'tap', 'lasso_select'],
-            xlabel=make_latex_label_string('N H$_2$'), ylabel=make_latex_label_string('N H$_2$O'), title=make_latex_label_string('N H$_2$ vs. N H$_2$O'),
+            # xlabel=make_latex_label_string('N H$_2$'), ylabel=make_latex_label_string('N H$_2$O'), title=make_latex_label_string('N H$_2$ vs. N H$_2$O'),
+            xlabel='N H$_2$', ylabel='N H$_2$O', title='N H$_2$ vs. N H$_2$O',
             hover_tooltips=[
                 ('ID', '@ID'),
                 ('N H$_2$O', '@sci_H2O_N'),
@@ -228,7 +230,8 @@ def plot_h2_vs_co2(selected_indices):
         ).opts(width=400, height=400,
             color='purple', size=6, marker='circle', alpha=0.7,
             tools=['hover', 'tap', 'lasso_select'],
-            xlabel=make_latex_label_string('N H_2'), ylabel=make_latex_label_string('N CO_2'), title=make_latex_label_string('N H_2 vs. N CO_2'),
+            # xlabel=make_latex_label_string('N H_2'), ylabel=make_latex_label_string('N CO_2'), title=make_latex_label_string('N H_2 vs. N CO_2'),
+            xlabel='N H$_2$', ylabel='N CO$_2$', title='N H$_2$ vs. N CO$_2$',
             hover_tooltips=[('ID', '@ID'), 
             ('N H$_2$', '@sci_H2_N'), 
             ('N CO$_2$', '@sci_CO2_N')],
@@ -242,7 +245,8 @@ def plot_h2_vs_co2(selected_indices):
         ).opts(width=400, height=400,
             color='purple', size=6, marker='circle', alpha=0.4,
             tools=['hover', 'tap', 'lasso_select'],
-            xlabel=make_latex_label_string('N H$_2$'), ylabel=make_latex_label_string('N CO$_2$'), title=make_latex_label_string('N H$_2$ vs. N CO$_2$'),
+            # xlabel=make_latex_label_string('N H$_2$'), ylabel=make_latex_label_string('N CO$_2$'), title=make_latex_label_string('N H$_2$ vs. N CO$_2$'),
+            xlabel='N H$_2$', ylabel='N CO$_2$', title='N H$_2$ vs. N CO$_2$',
             hover_tooltips=[('ID', '@ID'), 
             ('N H$_2$', '@sci_H2_N'), 
             ('N CO$_2$', '@sci_CO2_N')],
@@ -264,7 +268,8 @@ def plot_h2_vs_co(selected_indices):
             width=400, height=400,
             color='green', size=6, marker='circle', alpha=0.7,
             tools=['hover', 'tap', 'lasso_select'],
-            xlabel=make_latex_label_string('N H$_2$'), ylabel=make_latex_label_string('N CO'), title=make_latex_label_string('N H$_2$ vs. N CO'),
+            # xlabel=make_latex_label_string('N H$_2$'), ylabel=make_latex_label_string('N CO'), title=make_latex_label_string('N H$_2$ vs. N CO'),
+            xlabel='N H$_2$', ylabel='N CO', title='N H$_2$ vs. N CO',
             hover_tooltips=[('ID', '@ID'), ('N H$_2$', '@sci_H2_N'), ('N CO', '@sci_CO_N')],
             selected=indices,
             nonselection_alpha=0.1,
@@ -277,7 +282,8 @@ def plot_h2_vs_co(selected_indices):
             width=400, height=400,
             color='green', size=6, marker='circle', alpha=0.4,
             tools=['hover', 'tap', 'lasso_select'],
-            xlabel=make_latex_label_string('N H$_2$'), ylabel=make_latex_label_string('N CO'), title=make_latex_label_string('N H$_2$ vs. N CO'),
+            # xlabel=make_latex_label_string('N H$_2$'), ylabel=make_latex_label_string('N CO'), title=make_latex_label_string('N H$_2$ vs. N CO'),
+            xlabel='N H$_2$', ylabel='N CO', title='N H$_2$ vs. N CO',
             hover_tooltips=[('ID', '@ID'), ('N H$_2$', '@sci_H2_N'), ('N CO', '@sci_CO_N')],
         )
     return scatter
