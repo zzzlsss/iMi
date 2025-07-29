@@ -1,3 +1,4 @@
+# from turtle import width
 import numpy as np
 import pandas as pd
 import astropy.io.fits as fits
@@ -548,8 +549,8 @@ od_spectrum_map = hv.DynamicMap(plot_od_spectrum,streams=[selected_indices]) # s
 app_bar = pn.Row(
     pn.pane.Markdown('## <span style="color:white">ice Mapping interface (iMi)</span>', width=1200, sizing_mode="fixed", margin=(10,5,10,15)), 
     pn.Spacer(),
-    pn.pane.PNG("http://holoviews.org/_static/logo.png", height=50, sizing_mode="fixed", align="center"),
-    pn.pane.PNG("https://panel.holoviz.org/_static/logo_horizontal.png", height=50, sizing_mode="fixed", align="center"),
+    pn.pane.PNG("http://holoviews.org/_static/logo.png", height=50, width=50, sizing_mode="fixed", align="center"),
+    pn.pane.PNG("https://panel.holoviz.org/_static/logo_horizontal.png", height=50, width=100, sizing_mode="fixed", align="center"),
     styles={'background': 'black'},
 )
 # app_bar
@@ -577,10 +578,12 @@ if __name__ == "__main__":
                 scatter_H2O_CO,
                 scatter_CO2_CO,
             )),
-            sizing_mode='stretch_width',
+            sizing_mode='fixed',
+            width=1400,
+            height=400,
         ),
         sizing_mode='stretch_both',
-        margin=(10, 10, 10, 10),
+        # margin=(10, 10, 10, 10),
         css_classes=['imi-dashboard']
     )
 
