@@ -32,9 +32,16 @@ cat['ID'] = cat.index
 
 ## Cannot find way to label hover points with scientific notation therefore...
 cat['sci_H2O_N'] = cat['H2O_N'].apply(lambda x: f"{x:.3e}")
+cat['sci_H2O_N_err_lower'] = cat['H2O_N_err_lower'].apply(lambda x: f"{x:.3e}")
+cat['sci_H2O_N_err_upper'] = cat['H2O_N_err_upper'].apply(lambda x: f"{x:.3e}")
 cat['sci_CO2_N'] = cat['CO2_N'].apply(lambda x: f"{x:.3e}")
+cat['sci_CO2_N_err_lower'] = cat['CO2_N_err_lower'].apply(lambda x: f"{x:.3e}")
+cat['sci_CO2_N_err_upper'] = cat['CO2_N_err_upper'].apply(lambda x: f"{x:.3e}")
 cat['sci_CO_N'] = cat['CO_N'].apply(lambda x: f"{x:.3e}")
+cat['sci_CO_N_err_lower'] = cat['CO_N_err_lower'].apply(lambda x: f"{x:.3e}")
+cat['sci_CO_N_err_upper'] = cat['CO_N_err_upper'].apply(lambda x: f"{x:.3e}")
 cat['sci_H2_N'] = cat['H2_N'].apply(lambda x: f"{x:.3e}")
+
 
 
 """ 
@@ -434,7 +441,7 @@ def plot_spectrum(selected_indices):
     else:
         overlays = [hv.Curve([], 'Wavelength (μm)', 'Flux').opts(title="No selection") * hv.Curve([], 'Wavelength (μm)', 'Flux (mJy)')]
 
-    return hv.Overlay(overlays).opts(width=600, height=250, xlim=(2.4, 5.1), ylim=(1e-3, 0.7), logy=True)
+    return hv.Overlay(overlays).opts(width=600, height=300, xlim=(2.4, 5.1), ylim=(1e-3, 0.7), logy=True)
 
 # def plot_od_spectrum(index, index_H2O, index_CO2, index_CO):
 def plot_od_spectrum(selected_indices):
@@ -503,7 +510,7 @@ def plot_od_spectrum(selected_indices):
         overlays = [hv.Curve([], 'Wavelength (μm)', 'Optical Depth').opts(title="No selection")]
 
     return hv.Overlay(overlays).opts(
-            width=600, height=250, xlim=(2.4, 5.1), ylim=(-0.2, 5), 
+            width=600, height=300, xlim=(2.4, 5.1), ylim=(-0.2, 5), 
         )
     
 # Shows the zero continuum line
@@ -519,12 +526,48 @@ def plot_od_spectrum(selected_indices):
 
 def source_info_table(selected_indices):
     if selected_indices is None or len(selected_indices) == 0:
-        df = cat.iloc[[]][['ID', 'H2O_RA', 'H2O_Dec', 'sci_H2O_N', 'H2O_N_err_upper', 'H2O_N_err_lower', 'H2_N']].reset_index(drop=True)
+        df = cat.iloc[[]][['ID', 'H2O_RA', 'H2O_Dec', 
+                           'sci_H2O_N', 'sci_H2O_N_err_upper', 'sci_H2O_N_err_lower',
+                           'sci_CO2_N', 'sci_CO2_N_err_upper', 'sci_CO2_N_err_lower', 
+                           'sci_CO_N', 'sci_CO_N_err_upper', 'sci_CO_N_err_lower', 
+                           'sci_H2_N']].reset_index(drop=True)
+        df = df.rename(columns={
+            'H2O_RA': 'RA',
+            'H2O_Dec': 'Dec',
+            'sci_H2O_N': 'N H2O',
+            'sci_H2O_N_err_upper': 'N H2O err upp',
+            'sci_H2O_N_err_lower': 'N H2O err low',
+            'sci_CO2_N': 'N CO2',
+            'sci_CO2_N_err_upper': 'N CO2 err upp',
+            'sci_CO2_N_err_lower': 'N CO2 err low',
+            'sci_CO_N': 'N CO',
+            'sci_CO_N_err_upper': 'N CO err upp',
+            'sci_CO_N_err_lower': 'N CO err low',
+            'sci_H2_N': 'N H2'
+        })
     else:
-        df = cat.iloc[selected_indices][['ID', 'H2O_RA', 'H2O_Dec', 'sci_H2O_N', 'H2O_N_err_upper', 'H2O_N_err_lower', 'H2_N']].reset_index(drop=True)
+        df = cat.iloc[selected_indices][['ID', 'H2O_RA', 'H2O_Dec', 
+                                         'sci_H2O_N', 'sci_H2O_N_err_upper', 'sci_H2O_N_err_lower', 
+                                         'sci_CO2_N', 'sci_CO2_N_err_upper', 'sci_CO2_N_err_lower', 
+                                         'sci_CO_N', 'sci_CO_N_err_upper', 'sci_CO_N_err_lower', 
+                                         'sci_H2_N']].reset_index(drop=True)
+        df = df.rename(columns={
+            'H2O_RA': 'RA',
+            'H2O_Dec': 'Dec',
+            'sci_H2O_N': 'N H2O',
+            'sci_H2O_N_err_upper': 'N H2O err upp',
+            'sci_H2O_N_err_lower': 'N H2O err low',
+            'sci_CO2_N': 'N CO2',
+            'sci_CO2_N_err_upper': 'N CO2 err upp',
+            'sci_CO2_N_err_lower': 'N CO2 err low',
+            'sci_CO_N': 'N CO',
+            'sci_CO_N_err_upper': 'N CO err upp',
+            'sci_CO_N_err_lower': 'N CO err low',
+            'sci_H2_N': 'N H2'
+        })
     return hv.Table(df)
 
-table = hv.DynamicMap(source_info_table, streams=[selected_indices]).opts(width=600, height=100)
+table = hv.DynamicMap(source_info_table, streams=[selected_indices]).opts(width=1000, height=100)
 
 
 # Add a DataFrame widget that updates when points are selected
@@ -547,10 +590,10 @@ spectrum_map = hv.DynamicMap(plot_spectrum,streams=[selected_indices]) # streams
 od_spectrum_map = hv.DynamicMap(plot_od_spectrum,streams=[selected_indices]) # streams=[points_stream, scatter_H2O_stream, scatter_CO2_stream, scatter_CO_stream])
 
 app_bar = pn.Row(
-    pn.pane.Markdown('## <span style="color:white">ice Mapping interface (iMi)</span>', width=1200, sizing_mode="fixed", margin=(10,5,10,15)), 
+    pn.pane.Markdown('## <span style="color:white">ice Mapping interface (iMi)</span>', width=1000, sizing_mode="fixed", margin=(10,5,10,15)), 
     pn.Spacer(),
     pn.pane.PNG("http://holoviews.org/_static/logo.png", height=50, width=50, sizing_mode="fixed", align="center"),
-    pn.pane.PNG("https://panel.holoviz.org/_static/logo_horizontal.png", height=50, width=100, sizing_mode="fixed", align="center"),
+    pn.pane.PNG("https://panel.holoviz.org/_static/logo_horizontal.png", height=50, width=100, sizing_mode="fixed", align="center"), 
     styles={'background': 'black'},
 )
 # app_bar
@@ -559,14 +602,16 @@ if __name__ == "__main__":
     app = pn.Column(
         app_bar,
         pn.Spacer(height=10),
+        label_toggle,
         pn.Row(
-            layout, label_toggle,
+            layout, 
             pn.Column(
                 spectrum_map,
                 od_spectrum_map,
-                table,
+                
             ),
         ),
+        table,
         pn.Accordion(
             ("H2 vs Ice Column Density Correlation Plots", pn.Row(
                 scatter_H2O,
@@ -579,7 +624,7 @@ if __name__ == "__main__":
                 scatter_CO2_CO,
             )),
             sizing_mode='fixed',
-            width=1400,
+            width=1200,
             height=400,
         ),
         sizing_mode='stretch_both',
