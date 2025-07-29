@@ -179,7 +179,7 @@ def plot_h2_vs_h2o(selected_indices):
             cat,
             kdims=['H2_N', 'H2O_N'], vdims=['ID','H2_N_sci', 'H2O_N_sci']
         ).opts(width=400, height=400,
-            color='blue', size=6, marker='circle', alpha=0.7,
+            color='blue', size=6, marker='circle', alpha=0.4,
             tools=['hover'],
             xlabel='H2_N', ylabel='H2O_N', title='N H2 vs. N H2O',
             hover_tooltips=[('ID', '@ID'), ('H2_N', '@H2_N_sci'), ('H2O_N', '@H2O_N_sci')],
@@ -330,9 +330,9 @@ def plot_od_spectrum(selected_indices):
 
 def source_info_table(selected_indices):
     if selected_indices is None or len(selected_indices) == 0:
-        df = cat.iloc[[]].reset_index(drop=True)
+        df = cat.iloc[[]][['ID', 'H2O_RA', 'H2O_Dec', 'H2O_N_sci', 'H2O_N_err_upper', 'H2O_N_err_lower', 'H2_N']].reset_index(drop=True)
     else:
-        df = cat.iloc[selected_indices].reset_index(drop=True)
+        df = cat.iloc[selected_indices][['ID', 'H2O_RA', 'H2O_Dec', 'H2O_N_sci', 'H2O_N_err_upper', 'H2O_N_err_lower', 'H2_N']].reset_index(drop=True)
     return hv.Table(df)
 
 table = hv.DynamicMap(source_info_table, streams=[selected_indices]).opts(width=600, height=100)
