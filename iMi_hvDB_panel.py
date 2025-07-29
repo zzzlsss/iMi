@@ -202,7 +202,7 @@ def plot_h2_vs_co2(selected_indices):
             cat,
             kdims=['H2_N', 'CO2_N'], vdims=['ID','sci_H2_N', 'sci_CO2_N']
         ).opts(width=400, height=400,
-            color='green', size=6, marker='circle', alpha=0.7,
+            color='purple', size=6, marker='circle', alpha=0.7,
             tools=['hover', 'tap', 'lasso_select'],
             xlabel='N H_2', ylabel='N CO_2', title='N H_2 vs. N CO_2',
             hover_tooltips=[('ID', '@ID'), 
@@ -216,7 +216,7 @@ def plot_h2_vs_co2(selected_indices):
             cat,
             kdims=['H2_N', 'CO2_N'], vdims=['ID','sci_H2_N', 'sci_CO2_N']
         ).opts(width=400, height=400,
-            color='green', size=6, marker='circle', alpha=0.4,
+            color='purple', size=6, marker='circle', alpha=0.4,
             tools=['hover', 'tap', 'lasso_select'],
             xlabel='N H$_2$', ylabel='N CO$_2$', title='N H$_2$ vs. N CO$_2$',
             hover_tooltips=[('ID', '@ID'), 
@@ -239,7 +239,7 @@ def plot_h2_vs_co(selected_indices):
             kdims=['H2_N', 'CO_N'], vdims=['ID','sci_H2_N', 'sci_CO_N']
         ).opts(
             width=400, height=400,
-            color='red', size=6, marker='circle', alpha=0.7,
+            color='green', size=6, marker='circle', alpha=0.7,
             tools=['hover', 'tap', 'lasso_select'],
             xlabel='N H$_2$', ylabel='N CO', title='N H$_2$ vs. N CO',
             hover_tooltips=[('ID', '@ID'), ('N H$_2$', '@sci_H2_N'), ('N CO', '@sci_CO_N')],
@@ -252,7 +252,7 @@ def plot_h2_vs_co(selected_indices):
             kdims=['H2_N', 'CO_N'], vdims=['ID','sci_H2_N', 'sci_CO_N']
         ).opts(
             width=400, height=400,
-            color='red', size=6, marker='circle', alpha=0.4,
+            color='green', size=6, marker='circle', alpha=0.4,
             tools=['hover', 'tap', 'lasso_select'],
             xlabel='N H$_2$', ylabel='N CO', title='N H$_2$ vs. N CO',
             hover_tooltips=[('ID', '@ID'), ('N H$_2$', '@sci_H2_N'), ('N CO', '@sci_CO_N')],
@@ -346,7 +346,7 @@ def plot_od_spectrum(selected_indices):
             h2o_od_curve = hv.Curve((h2o_wls, h2o_od), 'Wavelength (μm)', 'Optical Depth').opts(color=color, title=title, alpha=0.75, line_width=0.75)
 
             # Add fill_between region for H2O OD between 2.715 and 3.35 μm
-            h2o_mask = (h2o_wls >= 2.715) & (h2o_wls <= 3.35)
+            h2o_mask = (h2o_wls >= 2.715) & (h2o_wls <= 3.35) & (h2o_od > 0)
             if np.any(h2o_mask):
                 fill_between = hv.Area((h2o_wls[h2o_mask], h2o_od[h2o_mask])).opts(
                     color='lightblue', alpha=0.4, line_alpha=0
@@ -359,7 +359,7 @@ def plot_od_spectrum(selected_indices):
             co2_od_curve = hv.Curve((co2_wls, co2_od), 'Wavelength (μm)', 'Optical Depth').opts(color=color, alpha=0.75, line_width=0.75)
 
             # Add fill_between region for CO2 OD between 2.715 and 3.35 μm
-            co2_mask = (co2_wls >= 4.2) & (co2_wls <= 4.34)
+            co2_mask = (co2_wls >= 4.2) & (co2_wls <= 4.34) & (co2_od > 0)
             if np.any(co2_mask):
                 fill_between = hv.Area((co2_wls[co2_mask], co2_od[co2_mask])).opts(
                     color='purple', alpha=0.4, line_alpha=0
@@ -372,7 +372,7 @@ def plot_od_spectrum(selected_indices):
             co_od_curve = hv.Curve((co_wls, co_od), 'Wavelength (μm)', 'Optical Depth').opts(color=color, alpha=0.75, line_width=0.75)
 
             # Add fill_between region for CO OD between 2.715 and 3.35 μm
-            co_mask = (co_wls >= 4.65) & (co_wls <= 4.705)
+            co_mask = (co_wls >= 4.65) & (co_wls <= 4.705) & (co_od > 0)
             if np.any(co_mask):
                 fill_between = hv.Area((co_wls[co_mask], co_od[co_mask])).opts(
                     color='green', alpha=0.4, line_alpha=0
