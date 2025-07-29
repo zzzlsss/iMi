@@ -6,13 +6,15 @@ Here at iMi inc. we are driven to provide first class wide-scale cloud ice map d
 
 > [!IMPORTANT]
 > The required packages (and versions) are:
-> ```pandas```
 > ```numpy```
+> ```pandas```
+> ```astropy```
 > ```holoviews```
+> ```panel```
 
 
 > [!CAUTION]
-> Without these formats, iMi cannot unlock your data's full potential. :-1:
+> Without the following column formatting, iMi cannot unlock your data's full potential. :-1:
 
 Please ensure you are...
 1. Using image data as a __FITS__ file (**Decision required:** or 2D array .npy with a WCS information pickle file)
@@ -32,5 +34,3 @@ Please ensure you are...
 - H2O_FluxErrs (reconsider what fluxes we want to plot)
 - **repeat for other ice molecules**
 - **info for ternary plot?**
-
-
