@@ -1,20 +1,22 @@
-import holoviews as hv
+import numpy as np
+import pandas as pd
 import astropy.io.fits as fits
 import astropy.visualization as apvis
 from astropy.wcs import WCS
-import pandas as pd
+
 import warnings
-import numpy as np
+warnings.filterwarnings("ignore", category=UserWarning, module='astropy')
+
 import panel as pn
 
-hv.extension('bokeh') # 'matplotlib') # 
+import holoviews as hv
 from holoviews.operation.datashader import rasterize
 from holoviews import opts
 from holoviews.streams import Selection1D
 from bokeh.models import HoverTool, NumeralTickFormatter
-# import bokeh.models.FuncTickFormatter
+hv.extension('bokeh') # 'matplotlib') # 
 
-# from scipy.interpolate import griddata
+
 data = fits.open('/Volumes/ZLS HD/PhD_Documents/Astro_Projects/Ice_Proposals/IceAge_ERS/Spectral_Extraction_Code/Real_Data_Code/FW_Files/IceAge_CHAMMS1-C2-FIELD_lw_F410M_visitall_modall_i2d.fits')
 cat = pd.read_pickle("/Users/zaklukasmith/Documents/IceMapping1/Ice_N_values_DFs/G95_All_Ice_Map.pkl")
 
