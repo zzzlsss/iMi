@@ -106,9 +106,6 @@ class SelectedIndices(hv.streams.Stream):
 
 selected_indices = SelectedIndices(selected_indices = [], transient=False)
 
-
-
-
 def update_selected_indices(index=[], index_CO2=[], index_CO = [], index_H2O=[], index_H2O_CO2=[], index_H2O_CO=[], index_CO2_CO=[],index_table=[]):
     combined_indices = list(set(index + index_CO2 + index_CO + index_H2O + index_H2O_CO2 + index_H2O_CO + index_CO2_CO + index_table))
     selected_indices.event(selected_indices=combined_indices)
@@ -677,7 +674,7 @@ if __name__ == "__main__":
     app = pn.Column(
         app_bar,
         pn.Spacer(height=10),
-        label_toggle,
+        label_toggle, search_bar,
         pn.Row(
             layout, 
             pn.Column(
