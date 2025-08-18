@@ -505,7 +505,7 @@ def plot_spectrum(selected_indices, *args, **kwargs):
     else:
         overlays = [hv.Curve([], 'Wavelength (μm)', 'Flux').opts(title="No selection") * hv.Curve([], 'Wavelength (μm)', 'Flux (mJy)')]
 
-    return hv.Overlay(overlays).opts(width=600, height=300, xlim=(2.4, 5.1), ylim=(1e-3, 0.7), logy=True)
+    return hv.Overlay(overlays).opts(width=600, height=200, xlim=(2.4, 5.1), ylim=(1e-3, 0.7), logy=True)
 
 # def plot_od_spectrum(index, index_H2O, index_CO2, index_CO):
 def plot_od_spectrum(selected_indices, *args, **kwargs):
@@ -567,7 +567,7 @@ def plot_od_spectrum(selected_indices, *args, **kwargs):
         overlays = [hv.Curve([], 'Wavelength (μm)', 'Optical Depth').opts(title="No selection")]
 
     return hv.Overlay(overlays).opts(
-            width=600, height=300, xlim=(2.4, 5.1), ylim=(-0.2, 5), 
+            width=600, height=200, xlim=(2.4, 5.1), ylim=(-0.2, 5), 
         )
     
 # Shows the zero continuum line
@@ -620,7 +620,7 @@ def source_info_table(selected_indices):
     return hv.Table(df)
 
 table = hv.DynamicMap(source_info_table, streams=[selected_indices]).opts(
-    width=1200, height=100, 
+    width=600, height=100, 
     # tools=['hover'], 
     # show_index=False, 
     title='Source Information Table',
@@ -674,15 +674,15 @@ if __name__ == "__main__":
     app = pn.Column(
         app_bar,
         pn.Spacer(height=10),
-        label_toggle, search_bar,
+        pn.Row(label_toggle, search_bar),
         pn.Row(
             layout, 
             pn.Column(
                 spectrum_map,
                 od_spectrum_map,
+                table,
                 ),
         ),
-        table,
         accord,
         sizing_mode='stretch_both',
         # margin=(10, 10, 10, 10),
