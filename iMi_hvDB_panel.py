@@ -197,23 +197,34 @@ points_stream.add_subscriber(update_selected_indices)
 def plot_h2_vs_h2o(selected_indices, *args, **kwargs):
     indices = selected_indices if selected_indices and len(selected_indices) > 0 else []
 
+    # # Prepare data for errorbars
+    # x = cat['H2_N'].values
+    # y = cat['H2O_N'].values
+    # yerr_lower = cat['H2O_N_err_lower'].values
+    # yerr_upper = cat['H2O_N_err_upper'].values
+
+    # # Holoviews ErrorBars expects (x, y, yerr_neg, yerr_pos)
+    # errorbars = hv.ErrorBars(
+    #     (x, y, y - yerr_lower, y + yerr_upper)
+    # ).opts(color='gray', alpha=0.4, line_width=1)
+
     if indices:
         scatter = hv.Points(
             cat,
             kdims=['H2_N', 'H2O_N'], vdims=['ID', 'sci_H2_N', 'sci_H2O_N']
         ).opts(width=400, height=400,
             color='blue', size=6, marker='circle', alpha=0.7,
-                tools=['hover', 'tap', 'lasso_select'],
-                xlabel=rll.make_latex_label_string('N H$_2$'), ylabel=rll.make_latex_label_string('N H$_2$O'), title=rll.make_latex_label_string('N H$_2$ vs. N H$_2$O'),
-                hover_tooltips=[
+            tools=['hover', 'tap', 'lasso_select'],
+            xlabel=rll.make_latex_label_string('N H$_2$'), ylabel=rll.make_latex_label_string('N H$_2$O'), title=rll.make_latex_label_string('N H$_2$ vs. N H$_2$O'),
+            hover_tooltips=[
                 ('ID', '@ID'),
                 ('N H$_2$O', '@sci_H2O_N'),
                 ('N H$_2$', '@sci_H2_N'),
-                ], 
-                selected=indices,
-                nonselection_alpha=0.1,
-            )
-     
+            ], 
+            selected=indices,
+            nonselection_alpha=0.1,
+        )
+
     else:
         scatter = hv.Points(
             cat,
@@ -226,9 +237,10 @@ def plot_h2_vs_h2o(selected_indices, *args, **kwargs):
                 ('ID', '@ID'),
                 ('N H$_2$O', '@sci_H2O_N'),
                 ('N H$_2$', '@sci_H2_N'),
-                ]
+            ]
         )
-    return scatter
+
+    return scatter # * errorbars 
 
 scatter_H2O = hv.DynamicMap(plot_h2_vs_h2o, streams=[selected_indices, rll])
 scatter_H2O_stream = hv.streams.Selection1D(source=scatter_H2O).rename(index='index_H2O')
