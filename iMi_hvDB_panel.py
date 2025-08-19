@@ -5,6 +5,7 @@ import re
 import astropy.io.fits as fits
 import astropy.visualization as apvis
 from astropy.wcs import WCS
+# import pickle
 
 import warnings
 warnings.filterwarnings("ignore", category=UserWarning, module='astropy')
