@@ -20,21 +20,24 @@ from holoviews.streams import Selection1D
 from bokeh.models import HoverTool, NumeralTickFormatter
 hv.extension('bokeh') # 'matplotlib') # 
 
-zakapo = True
+# zakapo = True
 
-if zakapo:
-    FITS_FILE_PATH = '/Volumes/ZLS HD/PhD_Documents/Astro_Projects/Ice_Proposals/IceAge_ERS/Spectral_Extraction_Code/Real_Data_Code/FW_Files/IceAge_CHAMMS1-C2-FIELD_lw_F410M_visitall_modall_i2d.fits'
-    PICKLE_FILE_PATH = "/Users/zaklukasmith/Documents/IceMapping1/Ice_N_values_DFs/G95_All_Ice_Map.pkl"
-else:
-    FITS_FILE_PATH = "/Users/hjd229/Documents/Data/Zak/IceAge_CHAMMS1-C2-FIELD_lw_F410M_visitall_modall_i2d.fits"
-    PICKLE_FILE_PATH = "/Users/hjd229/Documents/Data/Zak/G95_All_Ice_Map.pkl"
+# if zakapo:
+#     FITS_FILE_PATH = '/Volumes/ZLS HD/PhD_Documents/Astro_Projects/Ice_Proposals/IceAge_ERS/Spectral_Extraction_Code/Real_Data_Code/FW_Files/IceAge_CHAMMS1-C2-FIELD_lw_F410M_visitall_modall_i2d.fits'
+#     PICKLE_FILE_PATH = "/Users/zaklukasmith/Documents/IceMapping1/Ice_N_values_DFs/G95_All_Ice_Map.pkl"
+# else:
+#     FITS_FILE_PATH = "/Users/hjd229/Documents/Data/Zak/IceAge_CHAMMS1-C2-FIELD_lw_F410M_visitall_modall_i2d.fits"
+#     PICKLE_FILE_PATH = "/Users/hjd229/Documents/Data/Zak/G95_All_Ice_Map.pkl"
 
-data = fits.open(FITS_FILE_PATH)
-cat = pd.read_pickle(PICKLE_FILE_PATH)
+img_data_path = './IceAge_Original_Data/IA_F410M_img_data.npy'
+img_data = np.load(img_data_path)
 
+wcs_path = './IceAge_Original_Data/IA_F410M_wcs.pkl'
+wcs = pd.read_pickle(wcs_path)
 
+cat_path = './IceAge_Original_Data/IA_F410M_cat.pkl'
+cat = pd.read_pickle(cat_path)
 
-wcs = WCS(data[1].header)
 pixels = wcs.world_to_pixel_values(cat['H2O_RA'].values, cat['H2O_Dec'].values)
 cat['x_pix'], cat['y_pix'] = pixels[0], pixels[1]   
 cat['ID'] = cat.index
