@@ -6,3 +6,4 @@ matplotlib
 astropy
 bokeh
 datashader
+gdown

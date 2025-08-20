@@ -20,14 +20,33 @@ from holoviews.streams import Selection1D
 from bokeh.models import HoverTool, NumeralTickFormatter
 hv.extension('bokeh') # 'matplotlib') # 
 
-img_data_path = 'IceAge_Original_Data/IA_F410M_img_data.npy'
-img_data = np.load(img_data_path)
+from utils_gdrive import download_multiple_files
 
-wcs_path = 'IceAge_Original_Data/IA_F410M_WCS.pkl'
-wcs = pd.read_pickle(wcs_path)
+# img_data_path = 'IceAge_Original_Data/IA_F410M_img_data.npy'
+# img_data = np.load(img_data_path)
 
-cat_path = 'IceAge_Original_Data/Smith2025_Data.pkl'
-cat = pd.read_pickle(cat_path)
+# wcs_path = 'IceAge_Original_Data/IA_F410M_WCS.pkl'
+# wcs = pd.read_pickle(wcs_path)
+
+# cat_path = 'IceAge_Original_Data/Smith2025_Data.pkl'
+# cat = pd.read_pickle(cat_path)
+
+
+# Map local paths to Google Drive file IDs
+FILE_MAP = {
+    "IceAge_Original_Data/IA_F410M_WCS.pkl":      "1BPXKvzOOiPMOBVW3-vPS7Tg0EOMa4Gj_",
+    "IceAge_Original_Data/IA_F410M_img_data.npy": "1Rz3xQiPRgJcVxAAYkI2zTKznEwZ4kMQT", 
+    "IceAge_Original_Data/Smith2025_Data.pkl":    "1Vrxb-ZtjZ03HGhu2EP9FfYzQlsOFPlxb",
+    # Add more files as needed
+}
+
+# Download missing files
+download_multiple_files(FILE_MAP)
+
+wcs      = pd.read_pickle("IceAge_Original_Data/IA_F410M_WCS.pkl")
+img_data = np.load("IceAge_Original_Data/IA_F410M_img_data.npy")
+cat    = pd.read_pickle("IceAge_Original_Data/Smith2025_Data.pkl")
+
 
 pixels = wcs.world_to_pixel_values(cat['H2O_RA'].values, cat['H2O_Dec'].values)
 cat['x_pix'], cat['y_pix'] = pixels[0], pixels[1]   
