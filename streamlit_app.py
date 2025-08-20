@@ -2,7 +2,7 @@ import streamlit as st
 import holoviews as hv
 import numpy as np
 import pandas as pd
-from streamlit_bokeh_events import streamlit_bokeh_events
+import streamlit_bokeh_events
 
 hv.extension('bokeh')
 
