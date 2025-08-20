@@ -24,13 +24,18 @@ FILE_MAP = {
 }
 download_multiple_files(FILE_MAP)
 
-# Limit cache size to 2 objects for memory safety!
 @lru_cache(maxsize=2)
 def get_wcs():
     return pd.read_pickle("IceAge_Original_Data/IA_F410M_WCS.pkl")
 @lru_cache(maxsize=2)
 def get_img_data():
-    return np.load("IceAge_Original_Data/IA_F410M_img_data.npy")
+    img = np.load("IceAge_Original_Data/IA_F410M_img_data.npy")
+    # Downsample to max 1500x1500 pixels for memory safety!
+    max_dim = 1500
+    factor = max(img.shape[0] // max_dim, img.shape[1] // max_dim, 1)
+    if factor > 1:
+        img = img[::factor, ::factor]
+    return img
 @lru_cache(maxsize=2)
 def get_cat():
     return pd.read_pickle("IceAge_Original_Data/Smith2025_Data.pkl")
@@ -451,6 +456,5 @@ def make_app():
     )
     return app
 
-# Only create the Panel app ONCE and serve it:
 app = make_app()
 app.servable()
