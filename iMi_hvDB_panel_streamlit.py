@@ -29,13 +29,13 @@ hv.extension('bokeh') # 'matplotlib') #
 #     FITS_FILE_PATH = "/Users/hjd229/Documents/Data/Zak/IceAge_CHAMMS1-C2-FIELD_lw_F410M_visitall_modall_i2d.fits"
 #     PICKLE_FILE_PATH = "/Users/hjd229/Documents/Data/Zak/G95_All_Ice_Map.pkl"
 
-img_data_path = './IceAge_Original_Data/IA_F410M_img_data.npy'
+img_data_path = '/Users/zaklukasmith/Documents/GitHub/iMi/IceAge_Original_Data/IA_F410M_img_data.npy'
 img_data = np.load(img_data_path)
 
-wcs_path = './IceAge_Original_Data/IA_F410M_wcs.pkl'
+wcs_path = '/Users/zaklukasmith/Documents/GitHub/iMi/IceAge_Original_Data/IA_F410M_wcs.pkl'
 wcs = pd.read_pickle(wcs_path)
 
-cat_path = './IceAge_Original_Data/Smith2025_Data.pkl'
+cat_path = '/Users/zaklukasmith/Documents/GitHub/iMi/IceAge_Original_Data/Smith2025_Data.pkl'
 cat = pd.read_pickle(cat_path)
 
 pixels = wcs.world_to_pixel_values(cat['H2O_RA'].values, cat['H2O_Dec'].values)
@@ -59,8 +59,6 @@ cat['sci_CO_N_err_lower'] = cat['CO_N_err_lower'].apply(lambda x: f"{x:.3e}")
 cat['sci_CO_N_err_upper'] = cat['CO_N_err_upper'].apply(lambda x: f"{x:.3e}")
 cat['sci_H2_N'] = cat['H2_N'].apply(lambda x: f"{x:.3e}")
 
-
-
 """ 
 Non-linked materials
 - Rasterised FITS Image
@@ -71,7 +69,7 @@ Non-linked materials
 norm = apvis.ImageNormalize(img_data, stretch=apvis.HistEqStretch(img_data), clip=True)
 
 img = rasterize(
-    hv.Image(img_data.astype(np.float32),bounds=(0, 0, img_data.shape[1], img_data.shape[0])).opts(cnorm='eq_hist',),#clim=(norm.vmin, norm.vmax)),
+    hv.Image(img_data.astype(np.float32),bounds=(0, 0,img_data.shape[1], img_data.shape[0])).opts(cnorm='eq_hist',),#clim=(norm.vmin, norm.vmax)),
     precompute=True,
 ).opts(colorbar=True, cmap='gist_heat', width=600, height=600)
 
@@ -680,30 +678,109 @@ accord=pn.Accordion(
             height=400,
         )
 
-def toggle_latex_labels(*args, **kwargs):
-    if not rll.do_render_latex_labels:
-        rll.event(do_render_latex_labels = True)
 
-accord.param.watch(toggle_latex_labels, 'active')
+# --- Streamlit Entrypoint ---
+import streamlit as st
+
+
+import matplotlib.pyplot as plt
+
+def main():
+    st.set_page_config(
+        layout="wide",
+        page_title='ice Mapping interface (iMi)',
+        initial_sidebar_state='expanded',
+    )
+    st.title('ice Mapping interface (iMi)')
+    st.markdown('''This is a Streamlit version of the iMi dashboard.\n\n''')
+
+    # --- Sidebar controls ---
+    st.sidebar.header('Controls')
+    show_labels = st.sidebar.checkbox('Show ID Labels', value=True)
+    search_id = st.sidebar.text_input('Search by ID (comma-separated)', '')
+
+    # --- Selection logic ---
+    if 'selected_indices' not in st.session_state:
+        st.session_state['selected_indices'] = []
+    if search_id:
+        try:
+            search_ids = [int(s.strip()) for s in search_id.split(',') if s.strip().isdigit()]
+            indices = cat[cat['ID'].isin(search_ids)].index.tolist()
+            st.session_state['selected_indices'] = indices
+        except Exception:
+            st.session_state['selected_indices'] = []
+
+    # --- Main image with overlayed points ---
+    st.subheader('FITS Image with Catalog Overlay')
+    fig, ax = plt.subplots(figsize=(7,7))
+    ax.imshow(img_data, cmap='gist_heat', origin='lower')
+    ax.scatter(cat['x_pix'], cat['y_pix'], s=20, c='cyan', label='Sources', alpha=0.7)
+    if show_labels:
+        for i, row in cat.iterrows():
+            ax.text(row['x_pix'], row['y_pix'], str(row['ID']), color='white', fontsize=7)
+    if st.session_state['selected_indices']:
+        sel = cat.iloc[st.session_state['selected_indices']]
+        ax.scatter(sel['x_pix'], sel['y_pix'], s=60, facecolors='none', edgecolors='lime', linewidths=2, label='Selected')
+    ax.set_xlabel('x_pix')
+    ax.set_ylabel('y_pix')
+    st.pyplot(fig)
+
+    # --- Interactive scatter plot: H2 vs H2O ---
+    st.subheader('H2 vs H2O Column Density')
+    fig2, ax2 = plt.subplots(figsize=(5,5))
+    ax2.scatter(cat['H2_N'], cat['H2O_N'], c='blue', s=20, alpha=0.5)
+    if st.session_state['selected_indices']:
+        sel = cat.iloc[st.session_state['selected_indices']]
+        ax2.scatter(sel['H2_N'], sel['H2O_N'], c='red', s=60, label='Selected')
+    ax2.set_xlabel('N H2')
+    ax2.set_ylabel('N H2O')
+    ax2.set_xscale('log')
+    ax2.set_yscale('log')
+    st.pyplot(fig2)
+
+    # --- Table of selected sources ---
+    st.subheader('Source Information Table')
+    columns = ['ID', 'H2O_RA', 'H2O_Dec', 'sci_H2O_N', 'sci_H2O_N_err_upper', 'sci_H2O_N_err_lower',
+               'sci_CO2_N', 'sci_CO2_N_err_upper', 'sci_CO2_N_err_lower', 'sci_CO_N', 'sci_CO_N_err_upper', 'sci_CO_N_err_lower', 'sci_H2_N']
+    rename_dict = {
+        'H2O_RA': 'RA',
+        'H2O_Dec': 'Dec',
+        'sci_H2O_N': 'N H2O',
+        'sci_H2O_N_err_upper': 'N H2O err upp',
+        'sci_H2O_N_err_lower': 'N H2O err low',
+        'sci_CO2_N': 'N CO2',
+        'sci_CO2_N_err_upper': 'N CO2 err upp',
+        'sci_CO2_N_err_lower': 'N CO2 err low',
+        'sci_CO_N': 'N CO',
+        'sci_CO_N_err_upper': 'N CO err upp',
+        'sci_CO_N_err_lower': 'N CO err low',
+        'sci_H2_N': 'N H2'
+    }
+    if st.session_state['selected_indices']:
+        df = cat.iloc[st.session_state['selected_indices']][columns].reset_index(drop=True)
+    else:
+        df = cat[columns].reset_index(drop=True)
+    df = df.rename(columns=rename_dict)
+    st.dataframe(df)
+
+    # --- Spectrum plot for selected sources ---
+    st.subheader('Spectrum Plot for Selected Sources')
+    fig3, ax3 = plt.subplots(figsize=(7,3))
+    color_cycle = ['black', 'red', 'green', 'orange', 'purple', 'brown', 'magenta', 'cyan']
+    if st.session_state['selected_indices']:
+        for num, i in enumerate(st.session_state['selected_indices']):
+            row = cat.iloc[i]
+            h2o_wls = np.array(row['H2O_WLs'])
+            h2o_fluxes = np.array(row['H2O_Fluxes'])
+            color = color_cycle[num % len(color_cycle)]
+            ax3.plot(h2o_wls, h2o_fluxes, label=f'ID {row["ID"]}', color=color)
+        ax3.legend()
+    ax3.set_xlabel('Wavelength (μm)')
+    ax3.set_ylabel('Flux (mJy)')
+    ax3.set_yscale('log')
+    st.pyplot(fig3)
+
+    st.markdown('---')
 
 if __name__ == "__main__":
-    app = pn.Column(
-        app_bar,
-        pn.Spacer(height=10),
-        pn.Row(label_toggle, search_bar),
-        pn.Row(
-            layout, 
-            pn.Column(
-                spectrum_map,
-                od_spectrum_map,
-                table,
-                ),
-        ),
-        accord,
-        sizing_mode='stretch_both',
-        # margin=(10, 10, 10, 10),
-        css_classes=['imi-dashboard']
-    )
-
-    # Launch Panel app in browser
-    pn.serve(app, show=True, title="ice Mapping interface (iMi)")
+    main()
