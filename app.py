@@ -20,13 +20,13 @@ from holoviews.streams import Selection1D
 from bokeh.models import HoverTool, NumeralTickFormatter
 hv.extension('bokeh') # 'matplotlib') # 
 
-img_data_path = './IceAge_Original_Data/IA_F410M_img_data.npy'
+img_data_path = 'IceAge_Original_Data/IA_F410M_img_data.npy'
 img_data = np.load(img_data_path)
 
-wcs_path = './IceAge_Original_Data/IA_F410M_wcs.pkl'
+wcs_path = 'IceAge_Original_Data/IA_F410M_wcs.pkl'
 wcs = pd.read_pickle(wcs_path)
 
-cat_path = './IceAge_Original_Data/Smith2025_Data.pkl'
+cat_path = 'IceAge_Original_Data/Smith2025_Data.pkl'
 cat = pd.read_pickle(cat_path)
 
 pixels = wcs.world_to_pixel_values(cat['H2O_RA'].values, cat['H2O_Dec'].values)
