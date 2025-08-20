@@ -21,16 +21,7 @@ from bokeh.models import HoverTool, NumeralTickFormatter
 hv.extension('bokeh') # 'matplotlib') # 
 
 from utils_gdrive import download_multiple_files
-
-# img_data_path = 'IceAge_Original_Data/IA_F410M_img_data.npy'
-# img_data = np.load(img_data_path)
-
-# wcs_path = 'IceAge_Original_Data/IA_F410M_WCS.pkl'
-# wcs = pd.read_pickle(wcs_path)
-
-# cat_path = 'IceAge_Original_Data/Smith2025_Data.pkl'
-# cat = pd.read_pickle(cat_path)
-
+from functools import lru_cache
 
 # Map local paths to Google Drive file IDs
 FILE_MAP = {
@@ -40,38 +31,60 @@ FILE_MAP = {
     # Add more files as needed
 }
 
-# Download missing files
+# Download missing files at startup (quick, just checks existence)
 download_multiple_files(FILE_MAP)
 
-wcs      = pd.read_pickle("IceAge_Original_Data/IA_F410M_WCS.pkl")
-img_data = np.load("IceAge_Original_Data/IA_F410M_img_data.npy")
-cat    = pd.read_pickle("IceAge_Original_Data/Smith2025_Data.pkl")
+# Lazy-loading functions (cached)
+@lru_cache(maxsize=None)
+def get_wcs():
+    return pd.read_pickle("IceAge_Original_Data/IA_F410M_WCS.pkl")
 
+@lru_cache(maxsize=None)
+def get_img_data():
+    return np.load("IceAge_Original_Data/IA_F410M_img_data.npy")
 
-pixels = wcs.world_to_pixel_values(cat['H2O_RA'].values, cat['H2O_Dec'].values)
-cat['x_pix'], cat['y_pix'] = pixels[0], pixels[1]   
-cat['ID'] = cat.index
+@lru_cache(maxsize=None)
+def get_cat():
+    return pd.read_pickle("IceAge_Original_Data/Smith2025_Data.pkl")
 
-## ENSURES THAT SEARCH BY ID WORKS AND NEEDED AS SELECETED OPTION IN POINTS IS DONE BY ILOC!!!
-cat.reset_index(drop=True, inplace=True)
+def get_pixels():
+    # Helper for pixel calculation, uses lazy data loading
+    cat = get_cat()
+    wcs = get_wcs()
+    pixels = wcs.world_to_pixel_values(cat['H2O_RA'].values, cat['H2O_Dec'].values)
+    return pixels
 
-cat['sci_H2O_N'] = cat['H2O_N'].apply(lambda x: f"{x:.3e}")
-cat['sci_H2O_N_err_lower'] = cat['H2O_N_err_lower'].apply(lambda x: f"{x:.3e}")
-cat['sci_H2O_N_err_upper'] = cat['H2O_N_err_upper'].apply(lambda x: f"{x:.3e}")
-cat['sci_CO2_N'] = cat['CO2_N'].apply(lambda x: f"{x:.3e}")
-cat['sci_CO2_N_err_lower'] = cat['CO2_N_err_lower'].apply(lambda x: f"{x:.3e}")
-cat['sci_CO2_N_err_upper'] = cat['CO2_N_err_upper'].apply(lambda x: f"{x:.3e}")
-cat['sci_CO_N'] = cat['CO_N'].apply(lambda x: f"{x:.3e}")
-cat['sci_CO_N_err_lower'] = cat['CO_N_err_lower'].apply(lambda x: f"{x:.3e}")
-cat['sci_CO_N_err_upper'] = cat['CO_N_err_upper'].apply(lambda x: f"{x:.3e}")
-cat['sci_H2_N'] = cat['H2_N'].apply(lambda x: f"{x:.3e}")
+def get_cat_with_pixels():
+    # Returns catalogue with pixel columns and formatted columns
+    cat = get_cat().copy()
+    pixels = get_pixels()
+    cat['x_pix'], cat['y_pix'] = pixels[0], pixels[1]   
+    cat['ID'] = cat.index
+    cat.reset_index(drop=True, inplace=True)
+    cat['sci_H2O_N'] = cat['H2O_N'].apply(lambda x: f"{x:.3e}")
+    cat['sci_H2O_N_err_lower'] = cat['H2O_N_err_lower'].apply(lambda x: f"{x:.3e}")
+    cat['sci_H2O_N_err_upper'] = cat['H2O_N_err_upper'].apply(lambda x: f"{x:.3e}")
+    cat['sci_CO2_N'] = cat['CO2_N'].apply(lambda x: f"{x:.3e}")
+    cat['sci_CO2_N_err_lower'] = cat['CO2_N_err_lower'].apply(lambda x: f"{x:.3e}")
+    cat['sci_CO2_N_err_upper'] = cat['CO2_N_err_upper'].apply(lambda x: f"{x:.3e}")
+    cat['sci_CO_N'] = cat['CO_N'].apply(lambda x: f"{x:.3e}")
+    cat['sci_CO_N_err_lower'] = cat['CO_N_err_lower'].apply(lambda x: f"{x:.3e}")
+    cat['sci_CO_N_err_upper'] = cat['CO_N_err_upper'].apply(lambda x: f"{x:.3e}")
+    cat['sci_H2_N'] = cat['H2_N'].apply(lambda x: f"{x:.3e}")
+    return cat
 
-norm = apvis.ImageNormalize(img_data, stretch=apvis.HistEqStretch(img_data), clip=True)
+def get_norm():
+    img_data = get_img_data()
+    return apvis.ImageNormalize(img_data, stretch=apvis.HistEqStretch(img_data), clip=True)
 
-img = rasterize(
-    hv.Image(img_data.astype(np.float32),bounds=(0, 0, img_data.shape[1], img_data.shape[0])).opts(cnorm='eq_hist',),
-    precompute=True,
-).opts(colorbar=True, cmap='gist_heat', width=600, height=600)
+def get_img():
+    img_data = get_img_data()
+    return rasterize(
+        hv.Image(img_data.astype(np.float32),bounds=(0, 0, img_data.shape[1], img_data.shape[0])).opts(cnorm='eq_hist',),
+        precompute=True,
+    ).opts(colorbar=True, cmap='gist_heat', width=600, height=600)
+
+# --- STREAMS, STATE, AND CLASSES ---
 
 class RenderLatexLabels(hv.streams.Stream):
     do_render_latex_labels = hv.param.Boolean(default=False, doc="Should labels be rendered as latex?")
@@ -93,7 +106,10 @@ def update_selected_indices(index=[], index_CO2=[], index_CO = [], index_H2O=[],
     combined_indices = list(set(index + index_CO2 + index_CO + index_H2O + index_H2O_CO2 + index_H2O_CO + index_CO2_CO + index_table))
     selected_indices.event(selected_indices=combined_indices)
 
+# --- PLOTTING FUNCTIONS (now all use lazy loading) ---
+
 def plot_source_locations(selected_indices, *args, **kwargs):
+    cat = get_cat_with_pixels()
     points = hv.Points(cat, kdims=['x_pix', 'y_pix'],vdims=['ID','H2O_RA','H2O_Dec',
                                                             'sci_H2O_N','H2O_N_err_lower','H2O_N_err_upper',
                                                             'sci_CO2_N','CO2_N_err_lower','CO2_N_err_upper',
@@ -121,6 +137,7 @@ points_stream = hv.streams.Selection1D(source=points)
 points_stream.add_subscriber(update_selected_indices)
 
 def plot_labels(selected_indices=[], show_labels=True, *args, **kwargs):
+    cat = get_cat_with_pixels()
     if selected_indices:
         labels = hv.Labels(cat.iloc[selected_indices], kdims=['x_pix', 'y_pix'], vdims=['ID']).opts(
             text_color='blue', text_font_size='11pt', yoffset=15,
@@ -157,6 +174,7 @@ points_stream = hv.streams.Selection1D(source=points)
 points_stream.add_subscriber(update_selected_indices)
 
 def plot_h2_vs_h2o(selected_indices, *args, **kwargs):
+    cat = get_cat_with_pixels()
     indices = selected_indices if selected_indices and len(selected_indices) > 0 else []
     if indices:
         scatter = hv.Points(
@@ -195,6 +213,7 @@ scatter_H2O_stream = hv.streams.Selection1D(source=scatter_H2O).rename(index='in
 scatter_H2O_stream.add_subscriber(update_selected_indices)
 
 def plot_h2_vs_co2(selected_indices, *args, **kwargs):
+    cat = get_cat_with_pixels()
     indices = selected_indices if selected_indices and len(selected_indices) > 0 else []
     if indices:
         scatter = hv.Points(
@@ -229,6 +248,7 @@ scatter_CO2_stream = hv.streams.Selection1D(source=scatter_CO2).rename(index='in
 scatter_CO2_stream.add_subscriber(update_selected_indices)
 
 def plot_h2_vs_co(selected_indices, *args, **kwargs):
+    cat = get_cat_with_pixels()
     indices = selected_indices if selected_indices and len(selected_indices) > 0 else []
     if indices:
         scatter = hv.Points(
@@ -261,6 +281,7 @@ scatter_CO_stream = hv.streams.Selection1D(source=scatter_CO).rename(index='inde
 scatter_CO_stream.add_subscriber(update_selected_indices)
 
 def plot_h2o_vs_co2(selected_indices, *args, **kwargs):
+    cat = get_cat_with_pixels()
     indices = selected_indices if selected_indices and len(selected_indices) > 0 else []
     if indices:
         scatter = hv.Points(
@@ -301,6 +322,7 @@ scatter_H2O_CO2_stream = hv.streams.Selection1D(source=scatter_H2O_CO2).rename(i
 scatter_H2O_CO2_stream.add_subscriber(update_selected_indices)
 
 def plot_h2o_vs_co(selected_indices, *args, **kwargs):
+    cat = get_cat_with_pixels()
     indices = selected_indices if selected_indices and len(selected_indices) > 0 else []
     if indices:
         scatter = hv.Points(
@@ -341,6 +363,7 @@ scatter_H2O_CO_stream = hv.streams.Selection1D(source=scatter_H2O_CO).rename(ind
 scatter_H2O_CO_stream.add_subscriber(update_selected_indices)
 
 def plot_co_vs_co2(selected_indices, *args, **kwargs):
+    cat = get_cat_with_pixels()
     indices = selected_indices if selected_indices and len(selected_indices) > 0 else []
     if indices:
         scatter = hv.Points(
@@ -383,6 +406,7 @@ scatter_CO2_CO_stream.add_subscriber(update_selected_indices)
 search_bar = pn.widgets.TextInput(name='Search by ID', placeholder='Enter Spectrum ID / List of IDs (comma-separated)')
 
 def search_selected_indices(search_id):
+    cat = get_cat_with_pixels()
     if search_id:
         try:
             search_ids = [int(s.strip()) for s in search_id.split(',') if s.strip().isdigit()]
@@ -408,6 +432,7 @@ def search_selected_indices(search_id):
 search_bar.param.watch(lambda event: search_selected_indices(event.new.strip()) if event is not None and event.new is not None and event.new.strip() != "" else selected_indices.event(selected_indices=[]), 'value')
 
 def plot_spectrum(selected_indices, *args, **kwargs):
+    cat = get_cat_with_pixels()
     indices = (selected_indices if selected_indices and len(selected_indices) > 0 else [])
     if indices:
         overlays = []
@@ -450,6 +475,7 @@ def plot_spectrum(selected_indices, *args, **kwargs):
     return hv.Overlay(overlays).opts(width=600, height=200, xlim=(2.4, 5.1), ylim=(1e-3, 0.7), logy=True)
 
 def plot_od_spectrum(selected_indices, *args, **kwargs):
+    cat = get_cat_with_pixels()
     indices = (selected_indices if selected_indices and len(selected_indices) > 0 else [])
 
     overlays = []
@@ -509,6 +535,7 @@ def plot_od_spectrum(selected_indices, *args, **kwargs):
         )
 
 def source_info_table(selected_indices):
+    cat = get_cat_with_pixels()
     valid_indices = [i for i in selected_indices if 0 <= i < len(cat)]
     columns = ['ID', 'H2O_RA', 'H2O_Dec', 
                'sci_H2O_N', 'sci_H2O_N_err_upper', 'sci_H2O_N_err_lower',
@@ -551,7 +578,7 @@ table = hv.DynamicMap(source_info_table, streams=[selected_indices]).opts(
 table_stream = hv.streams.Selection1D(source=table).rename(index='index_table')
 table_stream.add_subscriber(update_selected_indices)
 
-layout = (img * points * labels)
+layout = (get_img() * points * labels)
 
 spectrum_map = hv.DynamicMap(plot_spectrum,streams=[selected_indices])
 od_spectrum_map = hv.DynamicMap(plot_od_spectrum,streams=[selected_indices])
