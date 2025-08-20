@@ -26,7 +26,17 @@ download_multiple_files(FILE_MAP)
 
 @lru_cache(maxsize=2)
 def get_wcs():
-    return pd.read_pickle("IceAge_Original_Data/IA_F410M_WCS.pkl")
+    wcs = pd.read_pickle("IceAge_Original_Data/IA_F410M_WCS.pkl")
+    img = get_img_data()
+    orig_shape = (6505, 6283)  # original shape
+    new_shape = img.shape
+    factor = max(orig_shape[0] // new_shape[0], orig_shape[1] // new_shape[1], 1)
+    wcs.naxis1 = new_shape[1]
+    wcs.naxis2 = new_shape[0]
+    if hasattr(wcs, 'wcs'):
+        wcs.wcs.cdelt *= factor
+        wcs.wcs.crpix = (wcs.wcs.crpix - 0.5) / factor + 0.5
+    return wcs
 @lru_cache(maxsize=2)
 def get_img_data():
     img = np.load("IceAge_Original_Data/IA_F410M_img_data.npy")
