@@ -20,15 +20,6 @@ from holoviews.streams import Selection1D
 from bokeh.models import HoverTool, NumeralTickFormatter
 hv.extension('bokeh') # 'matplotlib') # 
 
-# zakapo = True
-
-# if zakapo:
-#     FITS_FILE_PATH = '/Volumes/ZLS HD/PhD_Documents/Astro_Projects/Ice_Proposals/IceAge_ERS/Spectral_Extraction_Code/Real_Data_Code/FW_Files/IceAge_CHAMMS1-C2-FIELD_lw_F410M_visitall_modall_i2d.fits'
-#     PICKLE_FILE_PATH = "/Users/zaklukasmith/Documents/IceMapping1/Ice_N_values_DFs/G95_All_Ice_Map.pkl"
-# else:
-#     FITS_FILE_PATH = "/Users/hjd229/Documents/Data/Zak/IceAge_CHAMMS1-C2-FIELD_lw_F410M_visitall_modall_i2d.fits"
-#     PICKLE_FILE_PATH = "/Users/hjd229/Documents/Data/Zak/G95_All_Ice_Map.pkl"
-
 img_data_path = './IceAge_Original_Data/IA_F410M_img_data.npy'
 img_data = np.load(img_data_path)
 
@@ -45,9 +36,6 @@ cat['ID'] = cat.index
 ## ENSURES THAT SEARCH BY ID WORKS AND NEEDED AS SELECETED OPTION IN POINTS IS DONE BY ILOC!!!
 cat.reset_index(drop=True, inplace=True)
 
-# cat = cat[['ID', 'x_pix', 'y_pix', 'H2O_RA', 'H2O_Dec', 'H2O_N', 'H2O_N_err_lower', 'H2O_N_err_upper', 'H2O_WLs',]]# 'H2O_Fluxes', 'H2O_FluxErrs','H2O_Baseline', 'H2O_Baseline_err', 'H2O_OD_spec', 'H2O_OD_spec_err']]
-
-## Cannot find way to label hover points with scientific notation therefore...
 cat['sci_H2O_N'] = cat['H2O_N'].apply(lambda x: f"{x:.3e}")
 cat['sci_H2O_N_err_lower'] = cat['H2O_N_err_lower'].apply(lambda x: f"{x:.3e}")
 cat['sci_H2O_N_err_upper'] = cat['H2O_N_err_upper'].apply(lambda x: f"{x:.3e}")
@@ -59,28 +47,14 @@ cat['sci_CO_N_err_lower'] = cat['CO_N_err_lower'].apply(lambda x: f"{x:.3e}")
 cat['sci_CO_N_err_upper'] = cat['CO_N_err_upper'].apply(lambda x: f"{x:.3e}")
 cat['sci_H2_N'] = cat['H2_N'].apply(lambda x: f"{x:.3e}")
 
-
-
-""" 
-Non-linked materials
-- Rasterised FITS Image
-- Overlaid catalog labels 
-"""
-
-# img_data = np.flipud(data[1].data)
 norm = apvis.ImageNormalize(img_data, stretch=apvis.HistEqStretch(img_data), clip=True)
 
 img = rasterize(
-    hv.Image(img_data.astype(np.float32),bounds=(0, 0, img_data.shape[1], img_data.shape[0])).opts(cnorm='eq_hist',),#clim=(norm.vmin, norm.vmax)),
+    hv.Image(img_data.astype(np.float32),bounds=(0, 0, img_data.shape[1], img_data.shape[0])).opts(cnorm='eq_hist',),
     precompute=True,
 ).opts(colorbar=True, cmap='gist_heat', width=600, height=600)
 
-
-"""Utility data class to convert arbitrary LaTeX-like strings into 
-appropriate format for plotting as axis labels with Bokeh"""
-
 class RenderLatexLabels(hv.streams.Stream):
-
     do_render_latex_labels = hv.param.Boolean(default=False, doc="Should labels be rendered as latex?")
 
     def make_latex_label_string(self, latex_like_string):
@@ -91,22 +65,8 @@ class RenderLatexLabels(hv.streams.Stream):
 
 rll = RenderLatexLabels(do_render_latex_labels = False, transient=False)
 
-""" 
-Linked materials
-- Catalog points overlayed on the image - index_map
-- H2 vs Ice CDs (H2O, CO2, CO) scatter plots - index_H2O, index_CO2, index_CO
-- Ternary plot (future work) - index_ternary
-- Flux and OD Spectrum plots - points linked to plot these spectra 
-
-A selection1D stream for each plot is created to capture selections from the points plot.
-Ensure tap and lasso_select tools are enabled in the points plot.
-
-This will allow us to select points and update the spectrum plot dynamically
-"""
-
 class SelectedIndices(hv.streams.Stream):
     selected_indices = hv.param.List(default=[], doc="Selected object indices")
-
 
 selected_indices = SelectedIndices(selected_indices = [], transient=False)
 
@@ -125,15 +85,9 @@ def plot_source_locations(selected_indices, *args, **kwargs):
         hover_tooltips=[('ID', '@ID'),
                         ('RA', '@H2O_RA'), 
                         ('Dec', '@H2O_Dec'), 
-                        ('N H2O', '@sci_H2O_N'),  # scientific notation
-                        # ('H2O_N_err_lower', '@H2O_N_err_lower'), 
-                        # ('H2O_N_err_upper', '@H2O_N_err_upper'), 
+                        ('N H2O', '@sci_H2O_N'), 
                         ('N CO2', '@sci_CO2_N'), 
-                        # ('CO2_N_err_lower', '@CO2_N_err_lower'), 
-                        # ('CO2_N_err_upper', '@CO2_N_err_upper')
                         ('N CO', '@sci_CO_N'), 
-                        # ('CO_N_err_lower', '@CO_N_err_lower'), 
-                        # ('CO_N_err_upper', '@CO_N_err_upper')
                         ('N H2', '@sci_H2_N'),
                         ], 
         selected=selected_indices,
@@ -144,39 +98,27 @@ def plot_source_locations(selected_indices, *args, **kwargs):
     return points
 
 points = hv.DynamicMap(plot_source_locations, streams=[selected_indices])
-## Create a stream to capture selections from the points plot
-# This will allow us to update the spectrum plot based on selected points
-points_stream = hv.streams.Selection1D(source=points) #.rename(index='index_map')
+points_stream = hv.streams.Selection1D(source=points)
 points_stream.add_subscriber(update_selected_indices)
 
-
 def plot_labels(selected_indices=[], show_labels=True, *args, **kwargs):
-    """
-    Plot labels for selected points in the catalog.
-    """
-    # valid_indices = [i for i in selected_indices if 0 <= i < len(cat)]
     if selected_indices:
-        # If there are valid selected indices, plot labels for those points
         labels = hv.Labels(cat.iloc[selected_indices], kdims=['x_pix', 'y_pix'], vdims=['ID']).opts(
             text_color='blue', text_font_size='11pt', yoffset=15,
         )
     else:
         if show_labels:
-            # If no points are selected but labels should be shown, plot all labels
             labels = hv.Labels(cat, kdims=['x_pix', 'y_pix'], vdims=['ID']).opts(
                 text_color='blue', text_font_size='11pt', yoffset=15,
             )
         else:
-            # If no points are selected and labels should not be shown, return an empty Labels object
             labels = hv.Labels([], kdims=['x_pix', 'y_pix'], vdims=['ID']).opts(
                 text_color='blue', text_font_size='11pt', yoffset=15,
             )
     return labels
 
-# Panel toggle button to show/hide labels
 label_toggle = pn.widgets.Toggle(name='Show/Hide ID Labels', value=True, button_type='primary')
 
-# Use a Param stream to link the toggle button to the DynamicMap
 class ShowLabelsStream(hv.streams.Stream):
     show_labels = hv.param.Boolean(default=True)
 
@@ -187,31 +129,16 @@ def update_show_labels(event):
 
 label_toggle.param.watch(update_show_labels, 'value')
 
-# DynamicMap for labels, using the toggle button value
 labels = hv.DynamicMap(
     lambda selected_indices, show_labels, *args, **kwargs: plot_labels(selected_indices, show_labels),
     streams=[selected_indices, show_labels_stream]
 )
 
-## Create a stream to capture selections from the points plot
-# This will allow us to update the spectrum plot based on selected points
-points_stream = hv.streams.Selection1D(source=points) #.rename(index='index_map')
+points_stream = hv.streams.Selection1D(source=points)
 points_stream.add_subscriber(update_selected_indices)
 
 def plot_h2_vs_h2o(selected_indices, *args, **kwargs):
     indices = selected_indices if selected_indices and len(selected_indices) > 0 else []
-
-    # # Prepare data for errorbars
-    # x = cat['H2_N'].values
-    # y = cat['H2O_N'].values
-    # yerr_lower = cat['H2O_N_err_lower'].values
-    # yerr_upper = cat['H2O_N_err_upper'].values
-
-    # # Holoviews ErrorBars expects (x, y, yerr_neg, yerr_pos)
-    # errorbars = hv.ErrorBars(
-    #     (x, y, y - yerr_lower, y + yerr_upper)
-    # ).opts(color='gray', alpha=0.4, line_width=1)
-
     if indices:
         scatter = hv.Points(
             cat,
@@ -228,7 +155,6 @@ def plot_h2_vs_h2o(selected_indices, *args, **kwargs):
             selected=indices,
             nonselection_alpha=0.1,
         )
-
     else:
         scatter = hv.Points(
             cat,
@@ -243,8 +169,7 @@ def plot_h2_vs_h2o(selected_indices, *args, **kwargs):
                 ('N H$_2$', '@sci_H2_N'),
             ]
         )
-
-    return scatter # * errorbars 
+    return scatter
 
 scatter_H2O = hv.DynamicMap(plot_h2_vs_h2o, streams=[selected_indices, rll])
 scatter_H2O_stream = hv.streams.Selection1D(source=scatter_H2O).rename(index='index_H2O')
@@ -284,7 +209,6 @@ scatter_CO2 = hv.DynamicMap(plot_h2_vs_co2, streams=[selected_indices, rll])
 scatter_CO2_stream = hv.streams.Selection1D(source=scatter_CO2).rename(index='index_CO2')
 scatter_CO2_stream.add_subscriber(update_selected_indices)
 
-
 def plot_h2_vs_co(selected_indices, *args, **kwargs):
     indices = selected_indices if selected_indices and len(selected_indices) > 0 else []
     if indices:
@@ -316,8 +240,6 @@ def plot_h2_vs_co(selected_indices, *args, **kwargs):
 scatter_CO = hv.DynamicMap(plot_h2_vs_co, streams=[selected_indices, rll])
 scatter_CO_stream = hv.streams.Selection1D(source=scatter_CO).rename(index='index_CO')
 scatter_CO_stream.add_subscriber(update_selected_indices)
-
-""" Ice Ratio Plots """
 
 def plot_h2o_vs_co2(selected_indices, *args, **kwargs):
     indices = selected_indices if selected_indices and len(selected_indices) > 0 else []
@@ -439,18 +361,14 @@ scatter_CO2_CO = hv.DynamicMap(plot_co_vs_co2, streams=[selected_indices, rll])
 scatter_CO2_CO_stream = hv.streams.Selection1D(source=scatter_CO2_CO).rename(index='index_CO2_CO')
 scatter_CO2_CO_stream.add_subscriber(update_selected_indices)
 
-""" Search bar for ID search - updates selected_indices stream with the index of the searched ID"""
 search_bar = pn.widgets.TextInput(name='Search by ID', placeholder='Enter Spectrum ID / List of IDs (comma-separated)')
 
 def search_selected_indices(search_id):
     if search_id:
         try:
-            # Support comma-separated list of IDs
             search_ids = [int(s.strip()) for s in search_id.split(',') if s.strip().isdigit()]
             indices = cat[cat['ID'].isin(search_ids)].index.tolist()
-            # indices = cat[cat['ID'] == search_id_int].index.tolist()
             selected_indices.event(selected_indices=indices)
-            # Update all scatter plot selection streams to reflect the search
             points_stream.event(index=indices)
             scatter_H2O_stream.event(index=indices)
             scatter_CO2_stream.event(index=indices)
@@ -470,10 +388,6 @@ def search_selected_indices(search_id):
 
 search_bar.param.watch(lambda event: search_selected_indices(event.new.strip()) if event is not None and event.new is not None and event.new.strip() != "" else selected_indices.event(selected_indices=[]), 'value')
 
-
-
-""" Spectrum Plots """
-# def plot_spectrum(index, index_H2O, index_CO2, index_CO):
 def plot_spectrum(selected_indices, *args, **kwargs):
     indices = (selected_indices if selected_indices and len(selected_indices) > 0 else [])
     if indices:
@@ -489,14 +403,11 @@ def plot_spectrum(selected_indices, *args, **kwargs):
             h2o_fluxes = np.array(row['H2O_Fluxes'])
             h2o_baseline = np.array(row['H2O_Baseline'])
             
-            
             curve = hv.Curve((h2o_wls, h2o_fluxes), 'Wavelength (μm)', 'Flux (mJy)').opts(
                 xlim=(2.4, 5.1), ylim=(1e-3, 0.7), logy=True, line_width=0.75, color=color, title=title
             )
             baseline_curve = hv.Curve((h2o_wls, h2o_baseline)).opts(color='blue', line_dash='dashed', alpha=0.7)
 
-            # Add CO2 spectrum if available
-            # if 'CO2_WLs' in row and 'CO2_Fluxes' in row and row['CO2_WLs'] is not None and row['CO2_Fluxes'] is not None:
             co2_wls = np.array(row['CO2_WLs'])
             co2_fluxes = np.array(row['CO2_Fluxes'])
             co2_baseline = np.array(row['CO2_Baseline'])
@@ -505,8 +416,6 @@ def plot_spectrum(selected_indices, *args, **kwargs):
             )
             baseline_co2_curve = hv.Curve((co2_wls, co2_baseline)).opts(color='purple', line_dash='dashed', alpha=0.7)
 
-            # Add CO spectrum if available
-            # if 'CO_WLs' in row and 'CO_Fluxes' in row and row['CO_WLs'] is not None and row['CO_Fluxes'] is not None:
             co_wls = np.array(row['CO_WLs'])
             co_fluxes = np.array(row['CO_Fluxes'])
             co_baseline = np.array(row['CO_Baseline'])
@@ -516,14 +425,11 @@ def plot_spectrum(selected_indices, *args, **kwargs):
             baseline_co_curve = hv.Curve((co_wls, co_baseline)).opts(color='green', line_dash='dashed', alpha=0.7)
 
             overlays.append(curve * baseline_curve * co2_curve * baseline_co2_curve * co_curve * baseline_co_curve)
-            # else:
-            #     overlays.append(curve * baseline_curve)
     else:
         overlays = [hv.Curve([], 'Wavelength (μm)', 'Flux').opts(title="No selection") * hv.Curve([], 'Wavelength (μm)', 'Flux (mJy)')]
 
     return hv.Overlay(overlays).opts(width=600, height=200, xlim=(2.4, 5.1), ylim=(1e-3, 0.7), logy=True)
 
-# def plot_od_spectrum(index, index_H2O, index_CO2, index_CO):
 def plot_od_spectrum(selected_indices, *args, **kwargs):
     indices = (selected_indices if selected_indices and len(selected_indices) > 0 else [])
 
@@ -544,7 +450,6 @@ def plot_od_spectrum(selected_indices, *args, **kwargs):
 
             h2o_od_curve = hv.Curve((h2o_wls, h2o_od), 'Wavelength (μm)', 'Optical Depth').opts(color=color, title=title, alpha=0.75, line_width=0.75)
 
-            # Add fill_between region for H2O OD between 2.715 and 3.35 μm
             h2o_mask = (h2o_wls >= 2.715) & (h2o_wls <= 3.35) & (h2o_od > 0)
             if np.any(h2o_mask):
                 fill_between = hv.Area((h2o_wls[h2o_mask], h2o_od[h2o_mask])).opts(
@@ -557,7 +462,6 @@ def plot_od_spectrum(selected_indices, *args, **kwargs):
 
             co2_od_curve = hv.Curve((co2_wls, co2_od), 'Wavelength (μm)', 'Optical Depth').opts(color=color, alpha=0.75, line_width=0.75)
 
-            # Add fill_between region for CO2 OD between 4.2 and 4.34 μm
             co2_mask = (co2_wls >= 4.2) & (co2_wls <= 4.34) & (co2_od > 0)
             if np.any(co2_mask):
                 fill_between = hv.Area((co2_wls[co2_mask], co2_od[co2_mask])).opts(
@@ -570,7 +474,6 @@ def plot_od_spectrum(selected_indices, *args, **kwargs):
 
             co_od_curve = hv.Curve((co_wls, co_od), 'Wavelength (μm)', 'Optical Depth').opts(color=color, alpha=0.75, line_width=0.75)
 
-            # Add fill_between region for CO OD between 4.65 and 4.705 μm
             co_mask = (co_wls >= 4.65) & (co_wls <= 4.705) & (co_od > 0)
             if np.any(co_mask):
                 fill_between = hv.Area((co_wls[co_mask], co_od[co_mask])).opts(
@@ -585,17 +488,6 @@ def plot_od_spectrum(selected_indices, *args, **kwargs):
     return hv.Overlay(overlays).opts(
             width=600, height=200, xlim=(2.4, 5.1), ylim=(-0.2, 5), 
         )
-    
-# Shows the zero continuum line
-# Plotted only for first source as if done within loop, 
-# the od spectra are not plotted after 2 sources... 
-# Seemingly cannot plot every continuum line for each source in flux
-# if num == 0:
-#     baseline_curve = hv.Curve((wls, np.zeros_like(wls)), 'Wavelength (μm)', 'Optical Depth').opts(
-#         color='red', line_dash='dashed', alpha=0.7,
-#     )
-    
-#     overlays.append(baseline_curve)
 
 def source_info_table(selected_indices):
     valid_indices = [i for i in selected_indices if 0 <= i < len(cat)]
@@ -618,41 +510,32 @@ def source_info_table(selected_indices):
         'sci_CO_N_err_lower': 'N CO err low',
         'sci_H2_N': 'N H2'
     }
-    # If selection is from index_table, show full DataFrame
     if selected_indices is not None and set(table_stream.index) == set(selected_indices):
         df = cat[columns].reset_index(drop=True)
         df = df.rename(columns=rename_dict)
     elif valid_indices is None or len(valid_indices) == 0:
-        # Show full DataFrame if no selection
         df = cat[columns].reset_index(drop=True)
         df = df.rename(columns=rename_dict)
-
     else:
         df = cat.iloc[valid_indices][columns].reset_index(drop=True)
         df = df.rename(columns=rename_dict)
         if df.empty:
             df = pd.DataFrame([{col: "" for col in df.columns}])
-
     return hv.Table(df)
 
 table = hv.DynamicMap(source_info_table, streams=[selected_indices]).opts(
     width=600, height=100, 
-    # tools=['hover'], 
-    # show_index=False, 
     title='Source Information Table',
-    selectable=True, # can be selectable but pointless as I only build table from selected indices
-    # selection_policy='union'
+    selectable=True, 
 )
 
 table_stream = hv.streams.Selection1D(source=table).rename(index='index_table')
 table_stream.add_subscriber(update_selected_indices)
 
-""" All plots for app layout here """
-# Pair the plots so that selections in one update the other and axes stay synced
-layout = (img * points * labels) # * labels_but)
+layout = (img * points * labels)
 
-spectrum_map = hv.DynamicMap(plot_spectrum,streams=[selected_indices]) # streams=[points_stream, scatter_H2O_stream, scatter_CO2_stream, scatter_CO_stream])
-od_spectrum_map = hv.DynamicMap(plot_od_spectrum,streams=[selected_indices]) # streams=[points_stream, scatter_H2O_stream, scatter_CO2_stream, scatter_CO_stream])
+spectrum_map = hv.DynamicMap(plot_spectrum,streams=[selected_indices])
+od_spectrum_map = hv.DynamicMap(plot_od_spectrum,streams=[selected_indices])
 
 app_bar = pn.Row(
     pn.pane.Markdown('## <span style="color:white">ice Mapping interface (iMi)</span>', width=1000, sizing_mode="fixed", margin=(10,5,10,15)), 
@@ -661,8 +544,6 @@ app_bar = pn.Row(
     pn.pane.PNG("https://panel.holoviz.org/_static/logo_horizontal.png", height=50, width=100, sizing_mode="fixed", align="center"), 
     styles={'background': 'black'},
 )
-# app_bar
-
 
 accord=pn.Accordion(
             ("H2 vs Ice Column Density Correlation Plots", pn.Row(
@@ -686,24 +567,21 @@ def toggle_latex_labels(*args, **kwargs):
 
 accord.param.watch(toggle_latex_labels, 'active')
 
-if __name__ == "__main__":
-    app = pn.Column(
-        app_bar,
-        pn.Spacer(height=10),
-        pn.Row(label_toggle, search_bar),
-        pn.Row(
-            layout, 
-            pn.Column(
-                spectrum_map,
-                od_spectrum_map,
-                table,
-                ),
+app = pn.Column(
+    app_bar,
+    pn.Spacer(height=10),
+    pn.Row(label_toggle, search_bar),
+    pn.Row(
+        layout, 
+        pn.Column(
+            spectrum_map,
+            od_spectrum_map,
+            table,
         ),
-        accord,
-        sizing_mode='stretch_both',
-        # margin=(10, 10, 10, 10),
-        css_classes=['imi-dashboard']
-    )
+    ),
+    accord,
+    sizing_mode='stretch_both',
+    css_classes=['imi-dashboard']
+)
 
-    # Launch Panel app in browser
-    pn.serve(app, show=True, title="ice Mapping interface (iMi)")
+app.servable()
