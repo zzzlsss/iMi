@@ -7,3 +7,6 @@ astropy
 bokeh
 datashader
 gdown
+streamlit
+streamlit-bokeh-events
+requests
