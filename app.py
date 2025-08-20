@@ -607,6 +607,9 @@ accord=pn.Accordion(
             height=400,
         )
 
+# Open all Accordion sections by default
+accord.active = [1, 1]
+
 def toggle_latex_labels(*args, **kwargs):
     if not rll.do_render_latex_labels:
         rll.event(do_render_latex_labels = True)
