@@ -10,7 +10,7 @@ st.title("ice Mapping interface (iMi)")
 @st.cache_data
 def load_data():
     img_data = np.load('./IceAge_Original_Data/IA_F410M_img_data.npy')
-    wcs = pd.read_pickle('./IceAge_Original_Data/IA_F410M_wcs.pkl')
+    wcs = pd.read_pickle('./IceAge_Original_Data/IA_F410M_WCS.pkl')
     cat = pd.read_pickle('./IceAge_Original_Data/Smith2025_Data.pkl')
     return img_data, wcs, cat
 
