@@ -152,6 +152,29 @@ def make_app():
 
     label_toggle = pn.widgets.Toggle(name='Show/Hide ID Labels', value=True, button_type='primary')
 
+    
+    # Search bar for ID search - updates selected_indices stream with the index of the searched ID
+    search_bar = pn.widgets.TextInput(name='Search by ID', placeholder='Enter Spectrum ID / List of IDs (comma-separated)')
+
+    def search_selected_indices(search_id):
+        cat = get_cat_with_pixels()
+        if search_id:
+            try:
+                # Support comma-separated list of IDs
+                search_ids = [int(s.strip()) for s in search_id.split(',') if s.strip().isdigit()]
+                indices = cat[cat['ID'].isin(search_ids)].index.tolist()
+                selected_indices.event(selected_indices=indices)
+            except Exception:
+                selected_indices.event(selected_indices=[])
+        else:
+            selected_indices.event(selected_indices=[])
+
+    search_bar.param.watch(
+        lambda event: search_selected_indices(event.new.strip()) if event and event.new and event.new.strip() else selected_indices.event(selected_indices=[]),
+        'value'
+    )
+
+
     class ShowLabelsStream(hv.streams.Stream):
         show_labels = hv.param.Boolean(default=True)
     show_labels_stream = ShowLabelsStream(show_labels=label_toggle.value)
@@ -453,7 +476,7 @@ def make_app():
     app = pn.Column(
         app_bar,
         pn.Spacer(height=10),
-        pn.Row(label_toggle),
+        pn.Row(label_toggle,search_bar),
         pn.Row(
             layout, 
             pn.Column(
