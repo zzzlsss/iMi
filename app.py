@@ -33,8 +33,8 @@ def get_wcs():
     # orig_shape = (6505, 6283)  # original shape
     new_shape = img.shape
     factor = max(orig_shape[0] // new_shape[0], orig_shape[1] // new_shape[1], 1)
-    wcs.naxis1 = new_shape[0]
-    wcs.naxis2 = new_shape[1]
+    wcs.naxis1 = new_shape[1]
+    wcs.naxis2 = new_shape[0]
     if hasattr(wcs, 'wcs'):
         wcs.wcs.cdelt *= factor
         wcs.wcs.crpix = (wcs.wcs.crpix - 0.5) / factor + 0.5
