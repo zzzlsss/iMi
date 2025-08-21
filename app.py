@@ -24,8 +24,6 @@ FILE_MAP = {
 }
 download_multiple_files(FILE_MAP)
 
-
-""" MUST FIX THIS AS SOURCES ARE OFF POSITION!!! """
 @lru_cache(maxsize=2)
 def get_wcs():
     wcs = pd.read_pickle("IceAge_Original_Data/IA_F410M_WCS.pkl")
@@ -448,6 +446,7 @@ def make_app():
         sizing_mode='fixed',
         width=1200,
         height=400,
+        active=[0, 1],  # Show both panels open on app start
     )
 
     layout = (get_img() * points * labels)
