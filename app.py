@@ -152,7 +152,7 @@ def make_app():
 
     label_toggle = pn.widgets.Toggle(name='Show/Hide ID Labels', value=True, button_type='primary')
 
-    
+
     # Search bar for ID search - updates selected_indices stream with the index of the searched ID
     search_bar = pn.widgets.TextInput(name='Search by ID', placeholder='Enter Spectrum ID / List of IDs (comma-separated)')
 
@@ -476,7 +476,7 @@ def make_app():
     app = pn.Column(
         app_bar,
         pn.Spacer(height=10),
-        pn.Row(label_toggle,search_bar),
+        pn.Row(label_toggle, search_bar),
         pn.Row(
             layout, 
             pn.Column(
