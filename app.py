@@ -24,11 +24,13 @@ FILE_MAP = {
 }
 download_multiple_files(FILE_MAP)
 
+
+""" MUST FIX THIS AS SOURCES ARE OFF POSITION!!! """
 @lru_cache(maxsize=2)
 def get_wcs():
     wcs = pd.read_pickle("IceAge_Original_Data/IA_F410M_WCS.pkl")
-    img = get_img_data()
-    orig_shape = (6505, 6283)  # original shape
+    img, orig_shape = get_img_data()
+    # orig_shape = (6505, 6283)  # original shape
     new_shape = img.shape
     factor = max(orig_shape[0] // new_shape[0], orig_shape[1] // new_shape[1], 1)
     wcs.naxis1 = new_shape[0]
@@ -40,12 +42,13 @@ def get_wcs():
 @lru_cache(maxsize=2)
 def get_img_data():
     img = np.load("IceAge_Original_Data/IA_F410M_img_data.npy")
+    orig_shape = img.shape
     # Downsample to max 1500x1500 pixels for memory safety!
     max_dim = 1500
     factor = max(img.shape[0] // max_dim, img.shape[1] // max_dim, 1)
     if factor > 1:
         img = img[::factor, ::factor]
-    return img
+    return img, orig_shape
 @lru_cache(maxsize=2)
 def get_cat():
     return pd.read_pickle("IceAge_Original_Data/Smith2025_Data.pkl")
@@ -76,10 +79,10 @@ def make_app():
         return cat
 
     def get_norm():
-        img_data = get_img_data()
+        img_data,_ = get_img_data()
         return apvis.ImageNormalize(img_data, stretch=apvis.HistEqStretch(img_data), clip=True)
     def get_img():
-        img_data = get_img_data()
+        img_data,_ = get_img_data()
         return rasterize(
             hv.Image(img_data.astype(np.float32),bounds=(0, 0, img_data.shape[1], img_data.shape[0])).opts(cnorm='eq_hist',),
             precompute=True,
