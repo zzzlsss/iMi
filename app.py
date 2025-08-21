@@ -473,8 +473,18 @@ def make_app():
     )
     
     layout = (get_img() * points * labels)
+
+    instruction_text = pn.pane.Markdown("""
+    **Instructions:**  
+    - Use the search bar to find a spectrum by ID.
+    - Use the toggle to show/hide labels.
+    - Click on a point to view its spectrum and data.
+    - Use the plots and table on the right for detailed analysis.
+    """, width=1200)  # Adjust width as needed
+
     app = pn.Column(
         app_bar,
+        instruction_text,
         pn.Spacer(height=10),
         pn.Row(label_toggle, search_bar),
         pn.Row(
