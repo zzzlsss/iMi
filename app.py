@@ -446,10 +446,10 @@ def make_app():
         sizing_mode='fixed',
         width=1200,
         height=400,
-        active=[0, 1],  # Show both panels open on app start
+        # active=[0, 1],  # Show both panels open on app start -  Doesn't seem to work.
     )
-
-    layout = (get_img() * points * labels)
+    
+    layout = (get_img()[0] * points * labels)
     app = pn.Column(
         app_bar,
         pn.Spacer(height=10),
