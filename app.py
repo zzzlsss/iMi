@@ -503,11 +503,23 @@ def make_app():
     layout = (get_img() * points * labels)
 
     instruction_text = pn.pane.Markdown("""
+    Welcome to iMi - the ice Mapping interface! It's a pleasure to have you.
+
     **Instructions:**  
-    - Use the search bar to find a spectrum by ID.
+    - _PLEASE_ be patient. iMi is still in its infancy and is not full optimised yet. Thank you!
+    - Hover your mouse over a source to reveal its ID, RA, Dec, ice and H2 column densities.
+    - Click on the square boxes of the sources (not the ID text) on the image to reveal it's spectrum, fitted local baseline, according optical depth spectrum and row within the full data table.
+    - The spectral plots are also interactive so you can zoom in and out to specific regions of interest in the spectra.
+    - Hold shift and click on multiple sources to reveal their spectra simultaneously.
+    - Or select the lasso button on the right hand side toolbar (second option) to draw a selection region. Select the pan tool (multi-directional arrow, first option) again to leave lasso mode.
+    - Hit the dropdown bar of the ratio plots to reveal the H2 vs ice column density and ice vs ice correlation plots.
+    - The same functionality of the image map applies to the ratio plots.
+    - **VERY IMPORTANT:** When done with a specific selection, click anywhere on **the same plot** to deselect it, without causing any loading issues. It's something I need to fix.
+    - Click and drag on the image to pan around.
+    - Zoom in and out of image for better view of field. Plot will automatically adjust the colorscale.
+    - Use the search bar to find a spectrum by ID. For multiple IDs, separate each ID by commas.
     - Use the toggle to show/hide labels.
-    - Click on a point to view its spectrum and data.
-    - Use the plots and table on the right for detailed analysis.
+    - **VERY IMPORTANT:** Have fun exploring our data!
     """, width=1200)  # Adjust width as needed
 
     app = pn.Column(
