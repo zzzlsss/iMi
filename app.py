@@ -17,30 +17,30 @@ hv.extension('bokeh')
 import os
 import shutil
 
-# --- Cleanup code: delete downloaded data on session end ---
-def cleanup_files():
-    files_to_remove = [
-        "IceAge_Original_Data/IA_F410M_WCS.pkl",
-        "IceAge_Original_Data/IA_F410M_img_data.npy",
-        "IceAge_Original_Data/Smith2025_Data.pkl",
-    ]
-    for f in files_to_remove:
-        try:
-            os.remove(f)
-            print(f"Removed {f}")
-        except FileNotFoundError:
-            pass
-        except Exception as e:
-            print(f"Error removing {f}: {e}")
+# # --- Cleanup code: delete downloaded data on session end ---
+# def cleanup_files():
+#     files_to_remove = [
+#         "IceAge_Original_Data/IA_F410M_WCS.pkl",
+#         "IceAge_Original_Data/IA_F410M_img_data.npy",
+#         "IceAge_Original_Data/Smith2025_Data.pkl",
+#     ]
+#     for f in files_to_remove:
+#         try:
+#             os.remove(f)
+#             print(f"Removed {f}")
+#         except FileNotFoundError:
+#             pass
+#         except Exception as e:
+#             print(f"Error removing {f}: {e}")
 
-    try:
-        shutil.rmtree("IceAge_Original_Data", ignore_errors=True)
-        print("Removed directory IceAge_Original_Data")
-    except Exception as e:
-        print(f"Error removing directory: {e}")
+#     try:
+#         shutil.rmtree("IceAge_Original_Data", ignore_errors=True)
+#         print("Removed directory IceAge_Original_Data")
+#     except Exception as e:
+#         print(f"Error removing directory: {e}")
 
-pn.state.on_session_destroyed(lambda session_context: cleanup_files())
-# --- End cleanup code ---
+# pn.state.on_session_destroyed(lambda session_context: cleanup_files())
+# # --- End cleanup code ---
 
 from utils_gdrive import download_multiple_files
 from functools import lru_cache
